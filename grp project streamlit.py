@@ -276,8 +276,8 @@ period_map = {
 }
 period = period_map[period_label]
 
-esg1 = st.sidebar.number_input(f"Manual ESG rating for {ticker1 or 'Asset 1'}", min_value=0.0, max_value=100.0, value=60.0, step=1.0)
-esg2 = st.sidebar.number_input(f"Manual ESG rating for {ticker2 or 'Asset 2'}", min_value=0.0, max_value=100.0, value=70.0, step=1.0)
+esg1 = st.sidebar.slider(f"Manual ESG rating for {ticker1 or 'Asset 1'}", 0.0, 100.0, 60.0, 1.0)
+esg2 = st.sidebar.slider(f"Manual ESG rating for {ticker2 or 'Asset 2'}", 0.0, 100.0, 70.0, 1.0)
 
 investment_amount = st.sidebar.number_input("Total amount to invest (optional)", min_value=0.0, value=10000.0, step=100.0)
 
