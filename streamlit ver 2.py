@@ -122,6 +122,34 @@ def inject_apple_theme():
                 overflow-wrap: anywhere !important;
             }
 
+            .metric-card {
+                background: rgba(255, 255, 255, 0.9);
+                border: 1px solid rgba(15, 23, 42, 0.08);
+                border-radius: 22px;
+                padding: 0.95rem 1rem;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+                min-height: 150px;
+            }
+
+            .metric-card-label {
+                font-size: 0.88rem;
+                line-height: 1.35;
+                color: #4b5563;
+                margin-bottom: 0.55rem;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+
+            .metric-card-value {
+                font-size: clamp(1.25rem, 1.7vw, 2.25rem);
+                line-height: 1.1;
+                color: #111827;
+                font-weight: 600;
+                letter-spacing: -0.03em;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+
             [data-testid="stDataFrame"],
             [data-testid="stPlotlyChart"],
             [data-testid="stImage"],
@@ -263,6 +291,18 @@ def render_section_title(title):
     st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
 
 
+def render_metric_card(column, label, value):
+    column.markdown(
+        f"""
+        <div class="metric-card">
+            <div class="metric-card-label">{label}</div>
+            <div class="metric-card-value">{value}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def style_table(df):
     return (
         df.style
@@ -382,11 +422,15 @@ def portfolio_esg(w1, esg1, esg2):
     return w1 * esg1 + w2 * esg2
 
 
+def esg_utility_function(port_return_value, port_variance, port_esg_score, gamma, lambda_esg):
+    return port_return_value - 0.5 * gamma * port_variance + lambda_esg * port_esg_score
+
+
 def utility_function(expected_complete_return, complete_variance, gamma):
     return expected_complete_return - 0.5 * gamma * complete_variance
 
 
-def build_portfolio_table(r1, r2, sd1, sd2, corr, rf, esg1, esg2):
+def build_portfolio_table(r1, r2, sd1, sd2, corr, rf, esg1, esg2, gamma, lambda_esg):
     weights = np.linspace(0, 1, 1001)
     rows = []
 
@@ -397,6 +441,7 @@ def build_portfolio_table(r1, r2, sd1, sd2, corr, rf, esg1, esg2):
         risk = np.sqrt(var)
         esg_score = portfolio_esg(w1, esg1, esg2)
         sharpe = (ret - rf) / risk if risk > 0 else np.nan
+        utility = esg_utility_function(ret, var, esg_score, gamma, lambda_esg)
 
         rows.append({
             "Weight_Asset1": w1,
@@ -406,9 +451,14 @@ def build_portfolio_table(r1, r2, sd1, sd2, corr, rf, esg1, esg2):
             "Risk_SD": risk,
             "ESG_Score": esg_score,
             "Sharpe_Ratio": sharpe,
+            "Utility": utility,
         })
 
     return pd.DataFrame(rows)
+
+
+def select_recommended_portfolio(df):
+    return df.loc[df["Utility"].idxmax()]
 
 
 def select_max_sharpe_portfolio(df):
@@ -473,15 +523,18 @@ def add_end_label(ax, x_value, y_value, label, color):
     )
 
 
-def make_frontier_figure(df, tangency, ticker1, ticker2, r1, r2, sd1, sd2):
+def make_frontier_figure(df, tangency, recommended, ticker1, ticker2, r1, r2, sd1, sd2):
     fig, ax = plt.subplots(figsize=(10, 6))
     fig.patch.set_facecolor("#ffffff")
     ax.set_facecolor("#ffffff")
     ax.plot(df["Risk_SD"], df["Expected_Return"], linewidth=3, color="#0071e3", label="Risky-asset frontier")
-    ax.fill_between(df["Risk_SD"], df["Expected_Return"], color="#0071e3", alpha=0.08)
     ax.scatter(
         tangency["Risk_SD"], tangency["Expected_Return"], s=150, marker="X",
         color="#111827", linewidths=1.2, label="Tangency portfolio"
+    )
+    ax.scatter(
+        recommended["Risk_SD"], recommended["Expected_Return"], s=150, marker="D",
+        color="#34c759", edgecolors="white", linewidths=1.2, label="Recommended portfolio"
     )
     ax.scatter([sd1, sd2], [r1, r2], s=105, color="#a1a1aa", label="Individual Assets")
 
@@ -495,10 +548,18 @@ def make_frontier_figure(df, tangency, ticker1, ticker2, r1, r2, sd1, sd2):
         fontsize=10,
         bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="#d1d5db", alpha=0.95)
     )
+    ax.annotate(
+        "Recommended portfolio",
+        (recommended["Risk_SD"], recommended["Expected_Return"]),
+        textcoords="offset points",
+        xytext=(10, 12),
+        fontsize=10,
+        bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="#d1d5db", alpha=0.95)
+    )
 
     ax.set_xlabel("Portfolio Risk (Standard Deviation)")
     ax.set_ylabel("Expected Annual Return")
-    ax.set_title("Risky-Asset Frontier with Tangency Portfolio")
+    ax.set_title("Risky Asset Frontier")
     style_axis(ax, x_percent=True, y_percent=True)
     fig.tight_layout()
     return fig
@@ -513,7 +574,6 @@ def make_cml_figure(df, tangency, complete_portfolio, rf, ticker1, ticker2, r1, 
     cml_return = rf + tangency["Sharpe_Ratio"] * cml_risk
 
     ax.plot(df["Risk_SD"], df["Expected_Return"], linewidth=3, color="#0071e3", label="Efficient frontier")
-    ax.fill_between(df["Risk_SD"], df["Expected_Return"], color="#0071e3", alpha=0.08)
     ax.plot(cml_risk, cml_return, linewidth=2.8, color="#34c759", linestyle="--", label="Capital market line")
     ax.scatter(
         tangency["Risk_SD"], tangency["Expected_Return"], s=160, marker="X",
@@ -554,20 +614,19 @@ def make_cml_figure(df, tangency, complete_portfolio, rf, ticker1, ticker2, r1, 
     return fig
 
 
-def make_esg_tradeoff_figure(df, tangency):
+def make_esg_tradeoff_figure(df, recommended):
     fig, ax = plt.subplots(figsize=(10, 6))
     fig.patch.set_facecolor("#ffffff")
     ax.set_facecolor("#ffffff")
     ax.plot(df["ESG_Score"], df["Expected_Return"], linewidth=3, color="#5e5ce6", label="Return-ESG Trade-off")
-    ax.fill_between(df["ESG_Score"], df["Expected_Return"], color="#5e5ce6", alpha=0.08)
     ax.scatter(
-        tangency["ESG_Score"], tangency["Expected_Return"], s=150, marker="X",
-        color="#111827", linewidths=1.2, label="Tangency portfolio"
+        recommended["ESG_Score"], recommended["Expected_Return"], s=150, marker="D",
+        color="#34c759", edgecolors="white", linewidths=1.2, label="Recommended portfolio"
     )
 
     ax.annotate(
-        "Tangency portfolio",
-        (tangency["ESG_Score"], tangency["Expected_Return"]),
+        "Recommended portfolio",
+        (recommended["ESG_Score"], recommended["Expected_Return"]),
         textcoords="offset points",
         xytext=(10, -18),
         fontsize=10,
@@ -576,7 +635,7 @@ def make_esg_tradeoff_figure(df, tangency):
 
     ax.set_xlabel("Portfolio ESG Score")
     ax.set_ylabel("Expected Annual Return")
-    ax.set_title("Tangency Portfolio on the ESG and Return Trade-off")
+    ax.set_title("ESG Portfolio Frontier and Recommended Portfolio")
     style_axis(ax, y_percent=True)
     fig.tight_layout()
     return fig
@@ -696,6 +755,7 @@ esg_total = esg_scores[q4] + esg_scores[q5]
 
 gamma = risk_total / 3
 lambda_raw_avg = esg_total / 2
+lambda_esg = lambda_raw_avg / 100
 
 
 st.sidebar.header("Asset Inputs")
@@ -746,18 +806,21 @@ if run_button:
                 corr=market_data["corr"],
                 rf=risk_free_rate,
                 esg1=esg1,
-                esg2=esg2
+                esg2=esg2,
+                gamma=gamma,
+                lambda_esg=lambda_esg
             )
 
+            recommended = select_recommended_portfolio(df)
             tangency = select_max_sharpe_portfolio(df)
             complete_portfolio = build_complete_portfolio(tangency, risk_free_rate, gamma)
 
             render_section_title("Investor Profile")
             c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Risk attitude", classify_risk(gamma))
-            c2.metric("Sustainability profile", classify_esg(lambda_raw_avg))
-            c3.metric("Risk aversion score", f"{gamma:.2f}")
-            c4.metric("ESG preference score", f"{lambda_raw_avg:.2f} / 9")
+            render_metric_card(c1, "Risk attitude", classify_risk(gamma))
+            render_metric_card(c2, "Sustainability profile", classify_esg(lambda_raw_avg))
+            render_metric_card(c3, "Risk aversion score", f"{gamma:.2f}")
+            render_metric_card(c4, "ESG preference score", f"{lambda_raw_avg:.2f} / 9")
 
             render_section_title("Market Data Summary")
             md = pd.DataFrame({
@@ -787,10 +850,32 @@ if run_button:
             st.table(style_table(tangency_weights_df))
 
             p1, p2, p3, p4 = st.columns(4)
-            p1.metric("Expected return", f"{tangency['Expected_Return']*100:.2f}%")
-            p2.metric("Volatility", f"{tangency['Risk_SD']*100:.2f}%")
-            p3.metric("Sharpe ratio", f"{tangency['Sharpe_Ratio']:.3f}")
-            p4.metric("ESG score", f"{tangency['ESG_Score']:.2f}")
+            render_metric_card(p1, "Expected return", f"{tangency['Expected_Return']*100:.2f}%")
+            render_metric_card(p2, "Volatility", f"{tangency['Risk_SD']*100:.2f}%")
+            render_metric_card(p3, "Sharpe ratio", f"{tangency['Sharpe_Ratio']:.3f}")
+            render_metric_card(p4, "ESG score", f"{tangency['ESG_Score']:.2f}")
+
+            render_section_title("Recommended ESG Portfolio")
+            recommended_weights_df = pd.DataFrame({
+                "Asset": [ticker1, ticker2],
+                "Recommended Weight": [recommended["Weight_Asset1"], recommended["Weight_Asset2"]],
+                "Amount": [
+                    investment_amount * recommended["Weight_Asset1"],
+                    investment_amount * recommended["Weight_Asset2"]
+                ]
+            })
+            recommended_weights_df["Recommended Weight"] = recommended_weights_df["Recommended Weight"].map(
+                lambda x: f"{x*100:.2f}%"
+            )
+            recommended_weights_df["Amount"] = recommended_weights_df["Amount"].map(lambda x: f"{x:,.2f}")
+            st.table(style_table(recommended_weights_df))
+
+            p1, p2, p3, p4, p5 = st.columns(5)
+            render_metric_card(p1, "Expected return", f"{recommended['Expected_Return']*100:.2f}%")
+            render_metric_card(p2, "Volatility", f"{recommended['Risk_SD']*100:.2f}%")
+            render_metric_card(p3, "ESG score", f"{recommended['ESG_Score']:.2f}")
+            render_metric_card(p4, "Sharpe ratio", f"{recommended['Sharpe_Ratio']:.3f}")
+            render_metric_card(p5, "ESG utility", f"{recommended['Utility']:.4f}")
 
             render_section_title("Complete Portfolio")
             complete_weights_df = pd.DataFrame({
@@ -813,11 +898,11 @@ if run_button:
             st.table(style_table(complete_weights_df))
 
             p1, p2, p3, p4, p5 = st.columns(5)
-            p1.metric("Tangency portfolio weight", f"{complete_portfolio['y']:.3f}")
-            p2.metric("Weight in risk-free asset", f"{complete_portfolio['weight_risk_free']:.3f}")
-            p3.metric("Expected Return", f"{complete_portfolio['Expected_Return']*100:.2f}%")
-            p4.metric("Volatility", f"{complete_portfolio['Risk_SD']*100:.2f}%")
-            p5.metric("Utility", f"{complete_portfolio['Utility']:.4f}")
+            render_metric_card(p1, "Tangency portfolio weight", f"{complete_portfolio['y']:.3f}")
+            render_metric_card(p2, "Weight in risk-free asset", f"{complete_portfolio['weight_risk_free']:.3f}")
+            render_metric_card(p3, "Expected Return", f"{complete_portfolio['Expected_Return']*100:.2f}%")
+            render_metric_card(p4, "Volatility", f"{complete_portfolio['Risk_SD']*100:.2f}%")
+            render_metric_card(p5, "Utility", f"{complete_portfolio['Utility']:.4f}")
 
             st.caption(
                 "Complete portfolio formulas used: "
@@ -825,7 +910,39 @@ if run_button:
                 "U = Expected Return - 0.5 * gamma * Variance."
             )
 
-            render_section_title("Portfolio Comparison")
+            render_section_title("Risky Portfolio Comparison")
+            compare_df = pd.DataFrame({
+                "Metric": [
+                    "Weight in Asset 1",
+                    "Weight in Asset 2",
+                    "ESG score",
+                    "ESG utility",
+                    "Sharpe ratio",
+                    "Expected return",
+                    "Volatility",
+                ],
+                "Recommended ESG Portfolio": [
+                    f"{recommended['Weight_Asset1']*100:.2f}%",
+                    f"{recommended['Weight_Asset2']*100:.2f}%",
+                    f"{recommended['ESG_Score']:.2f}",
+                    f"{recommended['Utility']:.4f}",
+                    f"{recommended['Sharpe_Ratio']:.3f}",
+                    f"{recommended['Expected_Return']*100:.2f}%",
+                    f"{recommended['Risk_SD']*100:.2f}%",
+                ],
+                "Tangency Portfolio": [
+                    f"{tangency['Weight_Asset1']*100:.2f}%",
+                    f"{tangency['Weight_Asset2']*100:.2f}%",
+                    f"{tangency['ESG_Score']:.2f}",
+                    "N/A",
+                    f"{tangency['Sharpe_Ratio']:.3f}",
+                    f"{tangency['Expected_Return']*100:.2f}%",
+                    f"{tangency['Risk_SD']*100:.2f}%",
+                ],
+            })
+            st.table(style_table(compare_df))
+
+            render_section_title("Complete Portfolio Comparison")
             compare_df = pd.DataFrame({
                 "Metric": [
                     "Weight in Asset 1",
@@ -865,7 +982,7 @@ if run_button:
             st.pyplot(fig0)
 
             fig1 = make_frontier_figure(
-                df, tangency, ticker1, ticker2,
+                df, tangency, recommended, ticker1, ticker2,
                 market_data["r1"], market_data["r2"], market_data["sd1"], market_data["sd2"]
             )
             st.pyplot(fig1)
@@ -876,7 +993,7 @@ if run_button:
             )
             st.pyplot(fig2)
 
-            fig3 = make_esg_tradeoff_figure(df, tangency)
+            fig3 = make_esg_tradeoff_figure(df, recommended)
             st.pyplot(fig3)
 
         except Exception as e:
