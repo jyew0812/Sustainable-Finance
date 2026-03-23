@@ -104,20 +104,22 @@ def inject_apple_theme():
                 border-radius: 22px;
                 padding: 1rem 1.1rem;
                 box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
-                min-height: 180px;
+                min-height: 165px;
             }
 
             [data-testid="stMetricLabel"] {
-                font-size: 0.98rem !important;
+                font-size: 0.92rem !important;
+                line-height: 1.35 !important;
+                white-space: normal !important;
                 color: #4b5563 !important;
             }
 
             [data-testid="stMetricValue"] {
-                font-size: clamp(2.1rem, 3.2vw, 3.4rem) !important;
-                line-height: 1.05 !important;
-                white-space: normal !important;
-                word-break: break-word !important;
-                overflow-wrap: anywhere !important;
+                font-size: clamp(1.8rem, 2.7vw, 3.05rem) !important;
+                line-height: 1.08 !important;
+                white-space: nowrap !important;
+                word-break: normal !important;
+                overflow-wrap: normal !important;
             }
 
             [data-testid="stDataFrame"],
@@ -701,10 +703,9 @@ if run_button:
             complete_portfolio = build_complete_portfolio(tangency, risk_free_rate, gamma)
 
             render_section_title("Investor Profile")
-            c1, c2 = st.columns(2)
+            c1, c2, c3, c4 = st.columns(4)
             c1.metric("Risk attitude", classify_risk(gamma))
             c2.metric("Sustainability profile", classify_esg(lambda_raw_avg))
-            c3, c4 = st.columns(2)
             c3.metric("Risk aversion score", f"{gamma:.2f}")
             c4.metric("ESG preference score", f"{lambda_raw_avg:.2f} / 9")
 
@@ -762,16 +763,16 @@ if run_button:
             st.table(style_table(complete_weights_df))
 
             p1, p2, p3, p4, p5 = st.columns(5)
-            p1.metric("y in tangency portfolio", f"{complete_portfolio['y']:.3f}")
-            p2.metric("1 - y in risk-free asset", f"{complete_portfolio['weight_risk_free']:.3f}")
-            p3.metric("E[Rc]", f"{complete_portfolio['Expected_Return']*100:.2f}%")
+            p1.metric("Weight in tangency portfolio", f"{complete_portfolio['y']:.3f}")
+            p2.metric("Weight in risk-free asset", f"{complete_portfolio['weight_risk_free']:.3f}")
+            p3.metric("Expected Return", f"{complete_portfolio['Expected_Return']*100:.2f}%")
             p4.metric("Volatility", f"{complete_portfolio['Risk_SD']*100:.2f}%")
             p5.metric("Utility", f"{complete_portfolio['Utility']:.4f}")
 
             st.caption(
                 "Complete portfolio formulas used: "
-                "E[Rc] = rf + y(E[Rt] - rf), Var(Rc) = y^2 Var(Rt), "
-                "U = E[Rc] - 0.5 * gamma * Var(Rc)."
+                "Expected Return = rf + y(E[Rt] - rf), Variance = y^2 Var(Rt), "
+                "U = Expected Return - 0.5 * gamma * Variance."
             )
 
             render_section_title("Portfolio Comparison")
