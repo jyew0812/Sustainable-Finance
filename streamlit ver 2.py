@@ -762,19 +762,14 @@ st.sidebar.header("Asset Inputs")
 ticker1 = st.sidebar.text_input("Ticker for Asset 1", value="AAPL").strip().upper()
 ticker2 = st.sidebar.text_input("Ticker for Asset 2", value="MSFT").strip().upper()
 
-period_label = st.sidebar.selectbox(
-    "Historical lookback period",
-    ["6 months", "1 year", "3 years", "5 years"],
-    index=1
+lookback_years = st.sidebar.slider(
+    "Historical lookback period (years)",
+    min_value=1.0,
+    max_value=10.0,
+    value=3.0,
+    step=1.0,
 )
-
-period_map = {
-    "6 months": "6mo",
-    "1 year": "1y",
-    "3 years": "3y",
-    "5 years": "5y"
-}
-period = period_map[period_label]
+period = f"{int(lookback_years)}y"
 
 esg1 = st.sidebar.slider(f"Manual ESG rating for {ticker1 or 'Asset 1'}", min_value=0.0, max_value=100.0, value=60.0, step=1.0)
 esg2 = st.sidebar.slider(f"Manual ESG rating for {ticker2 or 'Asset 2'}", min_value=0.0, max_value=100.0, value=70.0, step=1.0)
