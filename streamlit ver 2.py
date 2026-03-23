@@ -102,24 +102,24 @@ def inject_apple_theme():
                 background: rgba(255, 255, 255, 0.9);
                 border: 1px solid var(--border);
                 border-radius: 22px;
-                padding: 1rem 1.1rem;
+                padding: 0.9rem 1rem;
                 box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
-                min-height: 165px;
+                min-height: 150px;
             }
 
             [data-testid="stMetricLabel"] {
-                font-size: 0.92rem !important;
+                font-size: 0.84rem !important;
                 line-height: 1.35 !important;
                 white-space: normal !important;
                 color: #4b5563 !important;
             }
 
             [data-testid="stMetricValue"] {
-                font-size: clamp(1.8rem, 2.7vw, 3.05rem) !important;
-                line-height: 1.08 !important;
-                white-space: nowrap !important;
-                word-break: normal !important;
-                overflow-wrap: normal !important;
+                font-size: clamp(1.35rem, 2vw, 2.55rem) !important;
+                line-height: 1.12 !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                overflow-wrap: anywhere !important;
             }
 
             [data-testid="stDataFrame"],
@@ -477,18 +477,18 @@ def make_frontier_figure(df, tangency, ticker1, ticker2, r1, r2, sd1, sd2):
     fig, ax = plt.subplots(figsize=(10, 6))
     fig.patch.set_facecolor("#ffffff")
     ax.set_facecolor("#ffffff")
-    ax.plot(df["Risk_SD"], df["Expected_Return"], linewidth=3, color="#0071e3", label="Feasible Risky-Asset Frontier")
+    ax.plot(df["Risk_SD"], df["Expected_Return"], linewidth=3, color="#0071e3", label="Risky-asset frontier")
     ax.fill_between(df["Risk_SD"], df["Expected_Return"], color="#0071e3", alpha=0.08)
     ax.scatter(
         tangency["Risk_SD"], tangency["Expected_Return"], s=150, marker="X",
-        color="#111827", linewidths=1.2, label="Max-Sharpe Portfolio"
+        color="#111827", linewidths=1.2, label="Tangency portfolio"
     )
     ax.scatter([sd1, sd2], [r1, r2], s=105, color="#a1a1aa", label="Individual Assets")
 
     ax.annotate(ticker1, (sd1, r1), textcoords="offset points", xytext=(6, 6))
     ax.annotate(ticker2, (sd2, r2), textcoords="offset points", xytext=(6, 6))
     ax.annotate(
-        "Max Sharpe",
+        "Tangency portfolio",
         (tangency["Risk_SD"], tangency["Expected_Return"]),
         textcoords="offset points",
         xytext=(10, -18),
@@ -498,7 +498,57 @@ def make_frontier_figure(df, tangency, ticker1, ticker2, r1, r2, sd1, sd2):
 
     ax.set_xlabel("Portfolio Risk (Standard Deviation)")
     ax.set_ylabel("Expected Annual Return")
-    ax.set_title("Risky-Asset Frontier and Tangency Portfolio")
+    ax.set_title("Risky-Asset Frontier with Tangency Portfolio")
+    style_axis(ax, x_percent=True, y_percent=True)
+    fig.tight_layout()
+    return fig
+
+
+def make_cml_figure(df, tangency, complete_portfolio, rf, ticker1, ticker2, r1, r2, sd1, sd2):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    fig.patch.set_facecolor("#ffffff")
+    ax.set_facecolor("#ffffff")
+
+    cml_risk = np.linspace(0, max(df["Risk_SD"].max(), complete_portfolio["Risk_SD"]) * 1.15, 300)
+    cml_return = rf + tangency["Sharpe_Ratio"] * cml_risk
+
+    ax.plot(df["Risk_SD"], df["Expected_Return"], linewidth=3, color="#0071e3", label="Efficient frontier")
+    ax.fill_between(df["Risk_SD"], df["Expected_Return"], color="#0071e3", alpha=0.08)
+    ax.plot(cml_risk, cml_return, linewidth=2.8, color="#34c759", linestyle="--", label="Capital market line")
+    ax.scatter(
+        tangency["Risk_SD"], tangency["Expected_Return"], s=160, marker="X",
+        color="#111827", linewidths=1.2, label="Tangency portfolio"
+    )
+    ax.scatter(
+        complete_portfolio["Risk_SD"], complete_portfolio["Expected_Return"], s=150, marker="D",
+        color="#ff9f0a", edgecolors="white", linewidths=1.2, label="Optimal complete portfolio"
+    )
+    ax.scatter(0, rf, s=110, color="#5e5ce6", label="Risk-free asset")
+    ax.scatter([sd1, sd2], [r1, r2], s=95, color="#a1a1aa", label="Individual assets")
+
+    ax.annotate("Risk-free", (0, rf), textcoords="offset points", xytext=(8, 8), fontsize=10)
+    ax.annotate(ticker1, (sd1, r1), textcoords="offset points", xytext=(6, 6), fontsize=10)
+    ax.annotate(ticker2, (sd2, r2), textcoords="offset points", xytext=(6, 6), fontsize=10)
+    ax.annotate(
+        "Tangency portfolio",
+        (tangency["Risk_SD"], tangency["Expected_Return"]),
+        textcoords="offset points",
+        xytext=(10, -18),
+        fontsize=10,
+        bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="#d1d5db", alpha=0.95)
+    )
+    ax.annotate(
+        "Optimal complete portfolio",
+        (complete_portfolio["Risk_SD"], complete_portfolio["Expected_Return"]),
+        textcoords="offset points",
+        xytext=(10, 12),
+        fontsize=10,
+        bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="#d1d5db", alpha=0.95)
+    )
+
+    ax.set_xlabel("Portfolio Risk (Standard Deviation)")
+    ax.set_ylabel("Expected Annual Return")
+    ax.set_title("Efficient Frontier and Capital Market Line")
     style_axis(ax, x_percent=True, y_percent=True)
     fig.tight_layout()
     return fig
@@ -512,11 +562,11 @@ def make_esg_tradeoff_figure(df, tangency):
     ax.fill_between(df["ESG_Score"], df["Expected_Return"], color="#5e5ce6", alpha=0.08)
     ax.scatter(
         tangency["ESG_Score"], tangency["Expected_Return"], s=150, marker="X",
-        color="#111827", linewidths=1.2, label="Max-Sharpe Portfolio"
+        color="#111827", linewidths=1.2, label="Tangency portfolio"
     )
 
     ax.annotate(
-        "Max Sharpe",
+        "Tangency portfolio",
         (tangency["ESG_Score"], tangency["Expected_Return"]),
         textcoords="offset points",
         xytext=(10, -18),
@@ -763,7 +813,7 @@ if run_button:
             st.table(style_table(complete_weights_df))
 
             p1, p2, p3, p4, p5 = st.columns(5)
-            p1.metric("Weight in tangency portfolio", f"{complete_portfolio['y']:.3f}")
+            p1.metric("Tangency portfolio weight", f"{complete_portfolio['y']:.3f}")
             p2.metric("Weight in risk-free asset", f"{complete_portfolio['weight_risk_free']:.3f}")
             p3.metric("Expected Return", f"{complete_portfolio['Expected_Return']*100:.2f}%")
             p4.metric("Volatility", f"{complete_portfolio['Risk_SD']*100:.2f}%")
@@ -820,8 +870,14 @@ if run_button:
             )
             st.pyplot(fig1)
 
-            fig2 = make_esg_tradeoff_figure(df, tangency)
+            fig2 = make_cml_figure(
+                df, tangency, complete_portfolio, risk_free_rate, ticker1, ticker2,
+                market_data["r1"], market_data["r2"], market_data["sd1"], market_data["sd2"]
+            )
             st.pyplot(fig2)
+
+            fig3 = make_esg_tradeoff_figure(df, tangency)
+            st.pyplot(fig3)
 
         except Exception as e:
             st.error(str(e))
