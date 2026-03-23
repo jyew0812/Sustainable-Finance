@@ -145,6 +145,28 @@ def inject_apple_theme():
                 background: rgba(255, 255, 255, 0.96) !important;
             }
 
+            div[data-baseweb="select"] > div {
+                color: #111827 !important;
+            }
+
+            div[data-baseweb="popover"] *,
+            ul[role="listbox"] *,
+            li[role="option"] * {
+                background: #ffffff !important;
+                color: #111827 !important;
+            }
+
+            li[role="option"] {
+                background: #ffffff !important;
+                color: #111827 !important;
+            }
+
+            li[role="option"]:hover,
+            li[role="option"][aria-selected="true"] {
+                background: #f3f4f6 !important;
+                color: #111827 !important;
+            }
+
             div[data-baseweb="input"] input,
             div[data-baseweb="select"] input,
             .stTextInput input,
@@ -455,7 +477,20 @@ def make_frontier_figure(df, optimal, max_sharpe, ticker1, ticker2, r1, r2, sd1,
     ax.set_ylabel("Expected Annual Return")
     ax.set_title("ESG Portfolio Frontier and Recommended Allocation")
     style_axis(ax, x_percent=True, y_percent=True)
-    ax.legend(frameon=False, loc="best")
+    legend = ax.legend(
+        frameon=True,
+        fancybox=True,
+        framealpha=0.96,
+        facecolor="white",
+        edgecolor="#e5e7eb",
+        loc="upper left",
+        fontsize=11,
+        borderpad=0.6,
+        labelspacing=0.6,
+        handlelength=2.2,
+    )
+    for text in legend.get_texts():
+        text.set_color("#111827")
     fig.tight_layout()
     return fig
 
@@ -496,7 +531,20 @@ def make_esg_tradeoff_figure(df, optimal, max_sharpe):
     ax.set_ylabel("Expected Annual Return")
     ax.set_title("ESG and Return Trade-off")
     style_axis(ax, y_percent=True)
-    ax.legend(frameon=False, loc="best")
+    legend = ax.legend(
+        frameon=True,
+        fancybox=True,
+        framealpha=0.96,
+        facecolor="white",
+        edgecolor="#e5e7eb",
+        loc="upper left",
+        fontsize=11,
+        borderpad=0.6,
+        labelspacing=0.6,
+        handlelength=2.2,
+    )
+    for text in legend.get_texts():
+        text.set_color("#111827")
     fig.tight_layout()
     return fig
 
