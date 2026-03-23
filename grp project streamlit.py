@@ -9,8 +9,186 @@ import streamlit as st
 # Page setup
 # =========================
 st.set_page_config(page_title="Sustainable Portfolio Recommender", layout="wide")
-st.title("Sustainable Portfolio Recommender")
-st.caption("Two-asset ESG portfolio optimiser using Yahoo Finance data and manual ESG ratings.")
+
+
+def inject_apple_theme():
+    st.markdown(
+        """
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+            :root {
+                --bg: #f5f5f7;
+                --surface: rgba(255, 255, 255, 0.88);
+                --surface-strong: #ffffff;
+                --border: rgba(15, 23, 42, 0.08);
+                --text: #111827;
+                --muted: #6b7280;
+                --accent: #0071e3;
+                --accent-soft: #e8f2ff;
+                --shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+                --radius: 24px;
+            }
+
+            .stApp {
+                background:
+                    radial-gradient(circle at top left, rgba(0, 113, 227, 0.08), transparent 28%),
+                    radial-gradient(circle at top right, rgba(52, 199, 89, 0.08), transparent 24%),
+                    linear-gradient(180deg, #fbfbfd 0%, #f2f4f7 100%);
+                color: var(--text);
+                font-family: 'Inter', sans-serif;
+            }
+
+            [data-testid="stHeader"] {
+                background: rgba(255, 255, 255, 0.72);
+                backdrop-filter: blur(14px);
+            }
+
+            [data-testid="stSidebar"] {
+                background: rgba(255, 255, 255, 0.78);
+                border-right: 1px solid var(--border);
+            }
+
+            [data-testid="stSidebar"] > div:first-child {
+                background: transparent;
+            }
+
+            .block-container {
+                padding-top: 2.2rem;
+                padding-bottom: 2rem;
+            }
+
+            h1, h2, h3, label, p, span, div {
+                color: var(--text);
+            }
+
+            .hero-card {
+                background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82));
+                border: 1px solid var(--border);
+                border-radius: 30px;
+                padding: 2rem 2.2rem;
+                box-shadow: var(--shadow);
+                margin-bottom: 1.4rem;
+            }
+
+            .hero-eyebrow {
+                display: inline-block;
+                padding: 0.35rem 0.8rem;
+                border-radius: 999px;
+                background: var(--accent-soft);
+                color: var(--accent);
+                font-size: 0.82rem;
+                font-weight: 600;
+                margin-bottom: 0.9rem;
+            }
+
+            .hero-title {
+                font-size: clamp(2rem, 4vw, 3.4rem);
+                line-height: 1.02;
+                font-weight: 700;
+                letter-spacing: -0.04em;
+                margin: 0;
+            }
+
+            .hero-subtitle {
+                margin-top: 0.9rem;
+                max-width: 720px;
+                font-size: 1.02rem;
+                line-height: 1.7;
+                color: var(--muted);
+            }
+
+            [data-testid="stMetric"] {
+                background: rgba(255, 255, 255, 0.9);
+                border: 1px solid var(--border);
+                border-radius: 22px;
+                padding: 1rem 1.1rem;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+            }
+
+            [data-testid="stDataFrame"],
+            [data-testid="stPlotlyChart"],
+            [data-testid="stImage"],
+            .stAlert {
+                background: rgba(255, 255, 255, 0.9);
+                border: 1px solid var(--border);
+                border-radius: 22px;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+            }
+
+            .stAlert {
+                padding: 0.9rem 1rem;
+            }
+
+            div[data-baseweb="select"] > div,
+            div[data-baseweb="input"] > div,
+            .stNumberInput > div > div,
+            .stTextInput > div > div {
+                border-radius: 14px !important;
+                border-color: rgba(15, 23, 42, 0.08) !important;
+                background: rgba(255, 255, 255, 0.96) !important;
+            }
+
+            .stRadio > div {
+                gap: 0.35rem;
+            }
+
+            .stRadio label {
+                background: rgba(255,255,255,0.74);
+                border: 1px solid rgba(15, 23, 42, 0.06);
+                padding: 0.55rem 0.75rem;
+                border-radius: 14px;
+            }
+
+            .stButton > button {
+                background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+                color: white;
+                border: none;
+                border-radius: 999px;
+                padding: 0.72rem 1.15rem;
+                font-weight: 600;
+                box-shadow: 0 12px 30px rgba(17, 24, 39, 0.18);
+            }
+
+            .stButton > button:hover {
+                background: linear-gradient(180deg, #374151 0%, #111827 100%);
+            }
+
+            .section-title {
+                font-size: 1.35rem;
+                font-weight: 700;
+                letter-spacing: -0.03em;
+                margin-top: 0.25rem;
+                margin-bottom: 0.8rem;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_hero():
+    st.markdown(
+        """
+        <div class="hero-card">
+            <div class="hero-eyebrow">Sustainable Investing</div>
+            <h1 class="hero-title">Sustainable Portfolio Recommender</h1>
+            <p class="hero-subtitle">
+                Build a polished two-asset portfolio recommendation using market data, personal risk preferences,
+                and your own ESG priorities.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_section_title(title):
+    st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
+
+
+inject_apple_theme()
+render_hero()
 
 
 # =========================
@@ -127,10 +305,18 @@ def select_max_sharpe_portfolio(df):
 
 def make_frontier_figure(df, optimal, max_sharpe, ticker1, ticker2, r1, r2, sd1, sd2):
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(df["Risk_SD"], df["Expected_Return"], linewidth=2, label="Feasible ESG Frontier")
-    ax.scatter(optimal["Risk_SD"], optimal["Expected_Return"], s=120, marker="D", label="Recommended ESG Portfolio")
-    ax.scatter(max_sharpe["Risk_SD"], max_sharpe["Expected_Return"], s=120, marker="X", label="Max-Sharpe Portfolio")
-    ax.scatter([sd1, sd2], [r1, r2], s=100, label="Individual Assets")
+    fig.patch.set_facecolor("#ffffff")
+    ax.set_facecolor("#ffffff")
+    ax.plot(df["Risk_SD"], df["Expected_Return"], linewidth=2.8, color="#0071e3", label="Feasible ESG Frontier")
+    ax.scatter(
+        optimal["Risk_SD"], optimal["Expected_Return"], s=140, marker="D",
+        color="#34c759", edgecolors="white", linewidths=1.2, label="Recommended ESG Portfolio"
+    )
+    ax.scatter(
+        max_sharpe["Risk_SD"], max_sharpe["Expected_Return"], s=150, marker="X",
+        color="#111827", linewidths=1.2, label="Max-Sharpe Portfolio"
+    )
+    ax.scatter([sd1, sd2], [r1, r2], s=105, color="#a1a1aa", label="Individual Assets")
 
     ax.annotate(ticker1, (sd1, r1), textcoords="offset points", xytext=(6, 6))
     ax.annotate(ticker2, (sd2, r2), textcoords="offset points", xytext=(6, 6))
@@ -140,7 +326,9 @@ def make_frontier_figure(df, optimal, max_sharpe, ticker1, ticker2, r1, r2, sd1,
     ax.set_xlabel("Portfolio Risk (Standard Deviation)")
     ax.set_ylabel("Expected Annual Return")
     ax.set_title("ESG Portfolio Frontier and Recommended Allocation")
-    ax.grid(True)
+    ax.grid(True, color="#e5e7eb", linewidth=0.9)
+    for spine in ax.spines.values():
+        spine.set_color("#e5e7eb")
     ax.legend()
     fig.tight_layout()
     return fig
@@ -148,9 +336,17 @@ def make_frontier_figure(df, optimal, max_sharpe, ticker1, ticker2, r1, r2, sd1,
 
 def make_esg_tradeoff_figure(df, optimal, max_sharpe):
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(df["ESG_Score"], df["Expected_Return"], linewidth=2, label="Return-ESG Trade-off")
-    ax.scatter(optimal["ESG_Score"], optimal["Expected_Return"], s=120, marker="D", label="Recommended ESG Portfolio")
-    ax.scatter(max_sharpe["ESG_Score"], max_sharpe["Expected_Return"], s=120, marker="X", label="Max-Sharpe Portfolio")
+    fig.patch.set_facecolor("#ffffff")
+    ax.set_facecolor("#ffffff")
+    ax.plot(df["ESG_Score"], df["Expected_Return"], linewidth=2.8, color="#5e5ce6", label="Return-ESG Trade-off")
+    ax.scatter(
+        optimal["ESG_Score"], optimal["Expected_Return"], s=140, marker="D",
+        color="#34c759", edgecolors="white", linewidths=1.2, label="Recommended ESG Portfolio"
+    )
+    ax.scatter(
+        max_sharpe["ESG_Score"], max_sharpe["Expected_Return"], s=150, marker="X",
+        color="#111827", linewidths=1.2, label="Max-Sharpe Portfolio"
+    )
 
     ax.annotate("Recommended", (optimal["ESG_Score"], optimal["Expected_Return"]), textcoords="offset points", xytext=(8, 8))
     ax.annotate("Max Sharpe", (max_sharpe["ESG_Score"], max_sharpe["Expected_Return"]), textcoords="offset points", xytext=(8, -14))
@@ -158,7 +354,9 @@ def make_esg_tradeoff_figure(df, optimal, max_sharpe):
     ax.set_xlabel("Portfolio ESG Score")
     ax.set_ylabel("Expected Annual Return")
     ax.set_title("ESG and Return Trade-off")
-    ax.grid(True)
+    ax.grid(True, color="#e5e7eb", linewidth=0.9)
+    for spine in ax.spines.values():
+        spine.set_color("#e5e7eb")
     ax.legend()
     fig.tight_layout()
     return fig
@@ -276,8 +474,8 @@ period_map = {
 }
 period = period_map[period_label]
 
-esg1 = st.sidebar.slider(f"Manual ESG rating for {ticker1 or 'Asset 1'}", 0.0, 100.0, 60.0, 1.0)
-esg2 = st.sidebar.slider(f"Manual ESG rating for {ticker2 or 'Asset 2'}", 0.0, 100.0, 70.0, 1.0)
+esg1 = st.sidebar.number_input(f"Manual ESG rating for {ticker1 or 'Asset 1'}", min_value=0.0, max_value=100.0, value=60.0, step=1.0)
+esg2 = st.sidebar.number_input(f"Manual ESG rating for {ticker2 or 'Asset 2'}", min_value=0.0, max_value=100.0, value=70.0, step=1.0)
 
 investment_amount = st.sidebar.number_input("Total amount to invest (optional)", min_value=0.0, value=10000.0, step=100.0)
 
@@ -312,14 +510,14 @@ if run_button:
             optimal = select_optimal_portfolio(df)
             max_sharpe = select_max_sharpe_portfolio(df)
 
-            st.subheader("Investor Profile")
+            render_section_title("Investor Profile")
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("Risk attitude", classify_risk(gamma))
             c2.metric("Sustainability profile", classify_esg(lambda_raw_avg))
             c3.metric("Risk aversion score", f"{gamma:.2f}")
             c4.metric("ESG preference score", f"{lambda_raw_avg:.2f} / 9")
 
-            st.subheader("Market Data Summary")
+            render_section_title("Market Data Summary")
             md = pd.DataFrame({
                 "Metric": ["Expected annual return", "Annual volatility", "ESG score used"],
                 ticker1: [market_data["r1"], market_data["sd1"], esg1],
@@ -331,7 +529,7 @@ if run_button:
             st.write(f"Correlation between {ticker1} and {ticker2}: **{market_data['corr']:.3f}**")
             st.write(f"Risk-free rate used: **{market_data['rf']*100:.2f}%**")
 
-            st.subheader("Recommended Portfolio")
+            render_section_title("Recommended Portfolio")
             weights_df = pd.DataFrame({
                 "Asset": [ticker1, ticker2],
                 "Recommended Weight": [optimal["Weight_Asset1"], optimal["Weight_Asset2"]],
@@ -351,7 +549,7 @@ if run_button:
             p4.metric("Sharpe ratio", f"{optimal['Sharpe_Ratio']:.3f}")
             p5.metric("Utility", f"{optimal['Utility']:.4f}")
 
-            st.subheader("Comparison with Max-Sharpe Portfolio")
+            render_section_title("Comparison with Max-Sharpe Portfolio")
             compare_df = pd.DataFrame({
                 "Metric": ["Weight in Asset 1", "Weight in Asset 2", "Expected return", "Volatility", "ESG score", "Sharpe ratio"],
                 "Recommended ESG Portfolio": [
@@ -373,7 +571,7 @@ if run_button:
             })
             st.dataframe(compare_df, use_container_width=True)
 
-            st.subheader("Charts")
+            render_section_title("Charts")
             fig1 = make_frontier_figure(
                 df, optimal, max_sharpe, ticker1, ticker2,
                 market_data["r1"], market_data["r2"], market_data["sd1"], market_data["sd2"]
