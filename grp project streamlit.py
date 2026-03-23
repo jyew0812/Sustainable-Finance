@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 import yfinance as yf
 import streamlit as st
 
@@ -104,6 +105,20 @@ def inject_apple_theme():
                 border-radius: 22px;
                 padding: 1rem 1.1rem;
                 box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+                min-height: 180px;
+            }
+
+            [data-testid="stMetricLabel"] {
+                font-size: 0.98rem !important;
+                color: #4b5563 !important;
+            }
+
+            [data-testid="stMetricValue"] {
+                font-size: clamp(2.1rem, 3.2vw, 3.4rem) !important;
+                line-height: 1.05 !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                overflow-wrap: anywhere !important;
             }
 
             [data-testid="stDataFrame"],
@@ -318,8 +333,6 @@ def fetch_market_data(ticker1, ticker2, period):
     mean_returns = returns.mean() * 252
     volatilities = returns.std() * np.sqrt(252)
     correlation = returns[ticker1].corr(returns[ticker2])
-    risk_free_rate = 0.02
-
     return {
         "prices": prices,
         "returns": returns,
@@ -328,7 +341,6 @@ def fetch_market_data(ticker1, ticker2, period):
         "sd1": float(volatilities[ticker1]),
         "sd2": float(volatilities[ticker2]),
         "corr": float(correlation),
-        "rf": risk_free_rate
     }
 
 
@@ -386,11 +398,30 @@ def select_max_sharpe_portfolio(df):
     return df.loc[df["Sharpe_Ratio"].idxmax()]
 
 
+def style_axis(ax, x_percent=False, y_percent=False):
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_color("#d1d5db")
+    ax.spines["bottom"].set_color("#d1d5db")
+    ax.tick_params(colors="#374151", labelsize=11)
+    ax.grid(True, color="#e5e7eb", linewidth=0.9, alpha=0.9)
+    ax.set_axisbelow(True)
+    ax.title.set_color("#111827")
+    ax.xaxis.label.set_color("#374151")
+    ax.yaxis.label.set_color("#374151")
+
+    if x_percent:
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x * 100:.0f}%"))
+    if y_percent:
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y * 100:.0f}%"))
+
+
 def make_frontier_figure(df, optimal, max_sharpe, ticker1, ticker2, r1, r2, sd1, sd2):
     fig, ax = plt.subplots(figsize=(10, 6))
     fig.patch.set_facecolor("#ffffff")
     ax.set_facecolor("#ffffff")
-    ax.plot(df["Risk_SD"], df["Expected_Return"], linewidth=2.8, color="#0071e3", label="Feasible ESG Frontier")
+    ax.plot(df["Risk_SD"], df["Expected_Return"], linewidth=3, color="#0071e3", label="Feasible ESG Frontier")
+    ax.fill_between(df["Risk_SD"], df["Expected_Return"], color="#0071e3", alpha=0.08)
     ax.scatter(
         optimal["Risk_SD"], optimal["Expected_Return"], s=140, marker="D",
         color="#34c759", edgecolors="white", linewidths=1.2, label="Recommended ESG Portfolio"
@@ -403,16 +434,28 @@ def make_frontier_figure(df, optimal, max_sharpe, ticker1, ticker2, r1, r2, sd1,
 
     ax.annotate(ticker1, (sd1, r1), textcoords="offset points", xytext=(6, 6))
     ax.annotate(ticker2, (sd2, r2), textcoords="offset points", xytext=(6, 6))
-    ax.annotate("Recommended", (optimal["Risk_SD"], optimal["Expected_Return"]), textcoords="offset points", xytext=(8, 8))
-    ax.annotate("Max Sharpe", (max_sharpe["Risk_SD"], max_sharpe["Expected_Return"]), textcoords="offset points", xytext=(8, -14))
+    ax.annotate(
+        "Recommended",
+        (optimal["Risk_SD"], optimal["Expected_Return"]),
+        textcoords="offset points",
+        xytext=(10, 10),
+        fontsize=10,
+        bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="#d1d5db", alpha=0.95)
+    )
+    ax.annotate(
+        "Max Sharpe",
+        (max_sharpe["Risk_SD"], max_sharpe["Expected_Return"]),
+        textcoords="offset points",
+        xytext=(10, -18),
+        fontsize=10,
+        bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="#d1d5db", alpha=0.95)
+    )
 
     ax.set_xlabel("Portfolio Risk (Standard Deviation)")
     ax.set_ylabel("Expected Annual Return")
     ax.set_title("ESG Portfolio Frontier and Recommended Allocation")
-    ax.grid(True, color="#e5e7eb", linewidth=0.9)
-    for spine in ax.spines.values():
-        spine.set_color("#e5e7eb")
-    ax.legend()
+    style_axis(ax, x_percent=True, y_percent=True)
+    ax.legend(frameon=False, loc="best")
     fig.tight_layout()
     return fig
 
@@ -421,7 +464,8 @@ def make_esg_tradeoff_figure(df, optimal, max_sharpe):
     fig, ax = plt.subplots(figsize=(10, 6))
     fig.patch.set_facecolor("#ffffff")
     ax.set_facecolor("#ffffff")
-    ax.plot(df["ESG_Score"], df["Expected_Return"], linewidth=2.8, color="#5e5ce6", label="Return-ESG Trade-off")
+    ax.plot(df["ESG_Score"], df["Expected_Return"], linewidth=3, color="#5e5ce6", label="Return-ESG Trade-off")
+    ax.fill_between(df["ESG_Score"], df["Expected_Return"], color="#5e5ce6", alpha=0.08)
     ax.scatter(
         optimal["ESG_Score"], optimal["Expected_Return"], s=140, marker="D",
         color="#34c759", edgecolors="white", linewidths=1.2, label="Recommended ESG Portfolio"
@@ -431,16 +475,28 @@ def make_esg_tradeoff_figure(df, optimal, max_sharpe):
         color="#111827", linewidths=1.2, label="Max-Sharpe Portfolio"
     )
 
-    ax.annotate("Recommended", (optimal["ESG_Score"], optimal["Expected_Return"]), textcoords="offset points", xytext=(8, 8))
-    ax.annotate("Max Sharpe", (max_sharpe["ESG_Score"], max_sharpe["Expected_Return"]), textcoords="offset points", xytext=(8, -14))
+    ax.annotate(
+        "Recommended",
+        (optimal["ESG_Score"], optimal["Expected_Return"]),
+        textcoords="offset points",
+        xytext=(10, 10),
+        fontsize=10,
+        bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="#d1d5db", alpha=0.95)
+    )
+    ax.annotate(
+        "Max Sharpe",
+        (max_sharpe["ESG_Score"], max_sharpe["Expected_Return"]),
+        textcoords="offset points",
+        xytext=(10, -18),
+        fontsize=10,
+        bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="#d1d5db", alpha=0.95)
+    )
 
     ax.set_xlabel("Portfolio ESG Score")
     ax.set_ylabel("Expected Annual Return")
     ax.set_title("ESG and Return Trade-off")
-    ax.grid(True, color="#e5e7eb", linewidth=0.9)
-    for spine in ax.spines.values():
-        spine.set_color("#e5e7eb")
-    ax.legend()
+    style_axis(ax, y_percent=True)
+    ax.legend(frameon=False, loc="best")
     fig.tight_layout()
     return fig
 
@@ -561,6 +617,8 @@ esg1 = st.sidebar.slider(f"Manual ESG rating for {ticker1 or 'Asset 1'}", min_va
 esg2 = st.sidebar.slider(f"Manual ESG rating for {ticker2 or 'Asset 2'}", min_value=0.0, max_value=100.0, value=70.0, step=1.0)
 
 investment_amount = st.sidebar.number_input("Total amount to invest (optional)", min_value=0.0, value=10000.0, step=100.0)
+risk_free_rate_pct = st.sidebar.slider("Risk-free rate (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
+risk_free_rate = risk_free_rate_pct / 100
 
 run_button = st.sidebar.button("Run portfolio optimisation")
 
@@ -583,7 +641,7 @@ if run_button:
                 sd1=market_data["sd1"],
                 sd2=market_data["sd2"],
                 corr=market_data["corr"],
-                rf=market_data["rf"],
+                rf=risk_free_rate,
                 esg1=esg1,
                 esg2=esg2,
                 gamma=gamma,
@@ -594,9 +652,10 @@ if run_button:
             max_sharpe = select_max_sharpe_portfolio(df)
 
             render_section_title("Investor Profile")
-            c1, c2, c3, c4 = st.columns(4)
+            c1, c2 = st.columns(2)
             c1.metric("Risk attitude", classify_risk(gamma))
             c2.metric("Sustainability profile", classify_esg(lambda_raw_avg))
+            c3, c4 = st.columns(2)
             c3.metric("Risk aversion score", f"{gamma:.2f}")
             c4.metric("ESG preference score", f"{lambda_raw_avg:.2f} / 9")
 
@@ -610,7 +669,7 @@ if run_button:
             md[ticker2] = [f"{md.loc[0, ticker2]*100:.2f}%", f"{md.loc[1, ticker2]*100:.2f}%", f"{md.loc[2, ticker2]:.2f}"]
             st.table(style_table(md))
             st.write(f"Correlation between {ticker1} and {ticker2}: **{market_data['corr']:.3f}**")
-            st.write(f"Risk-free rate used: **{market_data['rf']*100:.2f}%**")
+            st.write(f"Risk-free rate used: **{risk_free_rate * 100:.2f}%**")
 
             render_section_title("Recommended Portfolio")
             weights_df = pd.DataFrame({
