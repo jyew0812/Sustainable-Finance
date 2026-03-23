@@ -438,6 +438,19 @@ def style_axis(ax, x_percent=False, y_percent=False):
         ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y * 100:.0f}%"))
 
 
+def add_end_label(ax, x_value, y_value, label, color):
+    ax.annotate(
+        label,
+        (x_value, y_value),
+        textcoords="offset points",
+        xytext=(8, 0),
+        va="center",
+        fontsize=10,
+        color=color,
+        bbox=dict(boxstyle="round,pad=0.22", fc="white", ec="#e5e7eb", alpha=0.95)
+    )
+
+
 def make_frontier_figure(df, optimal, max_sharpe, ticker1, ticker2, r1, r2, sd1, sd2):
     fig, ax = plt.subplots(figsize=(10, 6))
     fig.patch.set_facecolor("#ffffff")
@@ -477,20 +490,6 @@ def make_frontier_figure(df, optimal, max_sharpe, ticker1, ticker2, r1, r2, sd1,
     ax.set_ylabel("Expected Annual Return")
     ax.set_title("ESG Portfolio Frontier and Recommended Allocation")
     style_axis(ax, x_percent=True, y_percent=True)
-    legend = ax.legend(
-        frameon=True,
-        fancybox=True,
-        framealpha=0.96,
-        facecolor="white",
-        edgecolor="#e5e7eb",
-        loc="upper left",
-        fontsize=11,
-        borderpad=0.6,
-        labelspacing=0.6,
-        handlelength=2.2,
-    )
-    for text in legend.get_texts():
-        text.set_color("#111827")
     fig.tight_layout()
     return fig
 
@@ -531,20 +530,29 @@ def make_esg_tradeoff_figure(df, optimal, max_sharpe):
     ax.set_ylabel("Expected Annual Return")
     ax.set_title("ESG and Return Trade-off")
     style_axis(ax, y_percent=True)
-    legend = ax.legend(
-        frameon=True,
-        fancybox=True,
-        framealpha=0.96,
-        facecolor="white",
-        edgecolor="#e5e7eb",
-        loc="upper left",
-        fontsize=11,
-        borderpad=0.6,
-        labelspacing=0.6,
-        handlelength=2.2,
-    )
-    for text in legend.get_texts():
-        text.set_color("#111827")
+    fig.tight_layout()
+    return fig
+
+
+def make_price_history_figure(prices, ticker1, ticker2):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    fig.patch.set_facecolor("#ffffff")
+    ax.set_facecolor("#ffffff")
+
+    color1 = "#0071e3"
+    color2 = "#5e5ce6"
+
+    ax.plot(prices.index, prices[ticker1], linewidth=2.8, color=color1)
+    ax.plot(prices.index, prices[ticker2], linewidth=2.8, color=color2)
+
+    add_end_label(ax, prices.index[-1], prices[ticker1].iloc[-1], ticker1, color1)
+    add_end_label(ax, prices.index[-1], prices[ticker2].iloc[-1], ticker2, color2)
+
+    ax.set_title("Historical Price Performance")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Adjusted Closing Price")
+    style_axis(ax)
+    fig.autofmt_xdate()
     fig.tight_layout()
     return fig
 
@@ -762,6 +770,9 @@ if run_button:
             st.table(style_table(compare_df))
 
             render_section_title("Charts")
+            fig0 = make_price_history_figure(market_data["prices"], ticker1, ticker2)
+            st.pyplot(fig0)
+
             fig1 = make_frontier_figure(
                 df, optimal, max_sharpe, ticker1, ticker2,
                 market_data["r1"], market_data["r2"], market_data["sd1"], market_data["sd2"]
