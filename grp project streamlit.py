@@ -109,6 +109,7 @@ def inject_apple_theme():
             [data-testid="stDataFrame"],
             [data-testid="stPlotlyChart"],
             [data-testid="stImage"],
+            [data-testid="stTable"],
             .stAlert {
                 background: rgba(255, 255, 255, 0.9);
                 border: 1px solid var(--border);
@@ -168,17 +169,18 @@ def inject_apple_theme():
             }
 
             .stButton > button {
-                background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
-                color: white;
-                border: none;
+                background: #ffffff !important;
+                color: #111827 !important;
+                border: 1px solid rgba(15, 23, 42, 0.1) !important;
                 border-radius: 999px;
                 padding: 0.72rem 1.15rem;
                 font-weight: 600;
-                box-shadow: 0 12px 30px rgba(17, 24, 39, 0.18);
+                box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
             }
 
             .stButton > button:hover {
-                background: linear-gradient(180deg, #374151 0%, #111827 100%);
+                background: #f8fafc !important;
+                color: #111827 !important;
             }
 
             .section-title {
@@ -187,6 +189,15 @@ def inject_apple_theme():
                 letter-spacing: -0.03em;
                 margin-top: 0.25rem;
                 margin-bottom: 0.8rem;
+            }
+
+            [data-testid="stDataFrame"] *,
+            [data-testid="stTable"] *,
+            [data-testid="stDataFrameResizable"] *,
+            [data-testid="stTable"] table,
+            [data-testid="stTable"] th,
+            [data-testid="stTable"] td {
+                color: #111827 !important;
             }
         </style>
         """,
@@ -212,6 +223,51 @@ def render_hero():
 
 def render_section_title(title):
     st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
+
+
+def style_table(df):
+    return (
+        df.style
+        .hide(axis="index")
+        .set_table_styles(
+            [
+                {
+                    "selector": "table",
+                    "props": [
+                        ("width", "100%"),
+                        ("border-collapse", "separate"),
+                        ("border-spacing", "0"),
+                        ("background", "#ffffff"),
+                        ("color", "#111827"),
+                        ("border", "1px solid rgba(15, 23, 42, 0.08)"),
+                        ("border-radius", "18px"),
+                        ("overflow", "hidden"),
+                        ("box-shadow", "0 10px 30px rgba(15, 23, 42, 0.05)"),
+                    ],
+                },
+                {
+                    "selector": "th",
+                    "props": [
+                        ("background", "#f8fafc"),
+                        ("color", "#111827"),
+                        ("font-weight", "600"),
+                        ("text-align", "left"),
+                        ("padding", "12px 14px"),
+                        ("border-bottom", "1px solid rgba(15, 23, 42, 0.08)"),
+                    ],
+                },
+                {
+                    "selector": "td",
+                    "props": [
+                        ("background", "#ffffff"),
+                        ("color", "#111827"),
+                        ("padding", "12px 14px"),
+                        ("border-bottom", "1px solid rgba(15, 23, 42, 0.06)"),
+                    ],
+                },
+            ]
+        )
+    )
 
 
 inject_apple_theme()
@@ -552,7 +608,7 @@ if run_button:
             })
             md[ticker1] = [f"{md.loc[0, ticker1]*100:.2f}%", f"{md.loc[1, ticker1]*100:.2f}%", f"{md.loc[2, ticker1]:.2f}"]
             md[ticker2] = [f"{md.loc[0, ticker2]*100:.2f}%", f"{md.loc[1, ticker2]*100:.2f}%", f"{md.loc[2, ticker2]:.2f}"]
-            st.dataframe(md, use_container_width=True)
+            st.table(style_table(md))
             st.write(f"Correlation between {ticker1} and {ticker2}: **{market_data['corr']:.3f}**")
             st.write(f"Risk-free rate used: **{market_data['rf']*100:.2f}%**")
 
@@ -567,7 +623,7 @@ if run_button:
             })
             weights_df["Recommended Weight"] = weights_df["Recommended Weight"].map(lambda x: f"{x*100:.2f}%")
             weights_df["Amount"] = weights_df["Amount"].map(lambda x: f"{x:,.2f}")
-            st.dataframe(weights_df, use_container_width=True)
+            st.table(style_table(weights_df))
 
             p1, p2, p3, p4, p5 = st.columns(5)
             p1.metric("Expected return", f"{optimal['Expected_Return']*100:.2f}%")
@@ -596,7 +652,7 @@ if run_button:
                     f"{max_sharpe['Sharpe_Ratio']:.3f}",
                 ],
             })
-            st.dataframe(compare_df, use_container_width=True)
+            st.table(style_table(compare_df))
 
             render_section_title("Charts")
             fig1 = make_frontier_figure(
