@@ -129,6 +129,33 @@ def inject_apple_theme():
                 background: rgba(255, 255, 255, 0.96) !important;
             }
 
+            div[data-baseweb="input"] input,
+            div[data-baseweb="select"] input,
+            .stTextInput input,
+            .stNumberInput input,
+            textarea {
+                color: #111827 !important;
+                -webkit-text-fill-color: #111827 !important;
+                caret-color: #111827 !important;
+            }
+
+            div[data-baseweb="input"] input::placeholder,
+            .stTextInput input::placeholder,
+            .stNumberInput input::placeholder,
+            textarea::placeholder {
+                color: #9ca3af !important;
+                -webkit-text-fill-color: #9ca3af !important;
+            }
+
+            div[data-baseweb="select"] * ,
+            .stSelectbox * ,
+            .stTextInput label,
+            .stNumberInput label,
+            .stSelectbox label,
+            .stSlider label {
+                color: #111827 !important;
+            }
+
             .stRadio > div {
                 gap: 0.35rem;
             }
@@ -474,8 +501,8 @@ period_map = {
 }
 period = period_map[period_label]
 
-esg1 = st.sidebar.number_input(f"Manual ESG rating for {ticker1 or 'Asset 1'}", min_value=0.0, max_value=100.0, value=60.0, step=1.0)
-esg2 = st.sidebar.number_input(f"Manual ESG rating for {ticker2 or 'Asset 2'}", min_value=0.0, max_value=100.0, value=70.0, step=1.0)
+esg1 = st.sidebar.slider(f"Manual ESG rating for {ticker1 or 'Asset 1'}", min_value=0.0, max_value=100.0, value=60.0, step=1.0)
+esg2 = st.sidebar.slider(f"Manual ESG rating for {ticker2 or 'Asset 2'}", min_value=0.0, max_value=100.0, value=70.0, step=1.0)
 
 investment_amount = st.sidebar.number_input("Total amount to invest (optional)", min_value=0.0, value=10000.0, step=100.0)
 
