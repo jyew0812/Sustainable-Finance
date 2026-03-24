@@ -376,17 +376,36 @@ def fetch_ticker_profile(ticker):
     if not ticker:
         return None
 
+    ticker_obj = yf.Ticker(ticker)
+
     try:
-        info = yf.Ticker(ticker).info
+        info = ticker_obj.get_info()
     except Exception:
-        return None
+        info = None
 
     if not info:
-        return None
+        try:
+            info = ticker_obj.info
+        except Exception:
+            info = None
+
+    info = info or {}
 
     sector = info.get("sector") or "Unavailable"
     industry = info.get("industry") or "Unavailable"
     short_name = info.get("shortName") or ticker
+
+    # Some Yahoo responses omit sector/industry in the primary info payload.
+    if sector == "Unavailable" or industry == "Unavailable":
+        try:
+            quote_type = ticker_obj.get_history_metadata() or {}
+        except Exception:
+            quote_type = {}
+
+        short_name = quote_type.get("shortName") or short_name
+
+    if sector == "Unavailable" and industry == "Unavailable" and short_name == ticker:
+        return None
 
     return {
         "name": short_name,
@@ -775,21 +794,21 @@ ticker1 = st.sidebar.text_input("Ticker for Asset 1", value="AAPL").strip().uppe
 profile1 = fetch_ticker_profile(ticker1)
 if ticker1:
     if profile1:
-        st.sidebar.caption(
-            f"{profile1['name']}\n\nSector: {profile1['sector']}\n\nIndustry: {profile1['industry']}"
+        st.sidebar.markdown(
+            f"**{profile1['name']}**  \nSector: {profile1['sector']}  \nIndustry: {profile1['industry']}"
         )
     else:
-        st.sidebar.caption("Sector: Unavailable\n\nIndustry: Unavailable")
+        st.sidebar.markdown("Sector: Unavailable  \nIndustry: Unavailable")
 
 ticker2 = st.sidebar.text_input("Ticker for Asset 2", value="MSFT").strip().upper()
 profile2 = fetch_ticker_profile(ticker2)
 if ticker2:
     if profile2:
-        st.sidebar.caption(
-            f"{profile2['name']}\n\nSector: {profile2['sector']}\n\nIndustry: {profile2['industry']}"
+        st.sidebar.markdown(
+            f"**{profile2['name']}**  \nSector: {profile2['sector']}  \nIndustry: {profile2['industry']}"
         )
     else:
-        st.sidebar.caption("Sector: Unavailable\n\nIndustry: Unavailable")
+        st.sidebar.markdown("Sector: Unavailable  \nIndustry: Unavailable")
 
 lookback_years = st.sidebar.slider(
     "Historical lookback period (years)",
