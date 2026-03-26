@@ -174,6 +174,14 @@ def inject_apple_theme():
                 color: #14532d;
             }
 
+            .warning-text {
+                color: #dc2626;
+                font-size: 0.92rem;
+                font-weight: 700;
+                line-height: 1.4;
+                margin-top: 0.2rem;
+            }
+
             [data-testid="stDataFrame"],
             [data-testid="stPlotlyChart"],
             [data-testid="stImage"],
@@ -341,6 +349,10 @@ def render_green_cost_card(sharpe_gap, esg_gain):
     )
 
 
+def render_sin_warning():
+    st.sidebar.markdown('<div class="warning-text">This is not green.</div>', unsafe_allow_html=True)
+
+
 def style_table(df):
     return (
         df.style
@@ -407,6 +419,24 @@ def classify_esg(lambda_raw_avg):
     elif lambda_raw_avg >= 4:
         return "ESG-Aware"
     return "Low ESG Priority"
+
+
+SIN_INDUSTRIES = [
+    "Tobacco",
+    "Gambling",
+    "Resorts & Casinos",
+    "Oil & Gas E&P",
+    "Oil & Gas Integrated",
+    "Oil & Gas Midstream",
+    "Oil & Gas Refining & Marketing",
+    "Oil & Gas Equipment & Services",
+    "Oil & Gas Drilling",
+    "Thermal Coal",
+]
+
+
+def is_sin_industry(industry):
+    return industry in SIN_INDUSTRIES
 
 
 @st.cache_data(show_spinner=False)
@@ -907,6 +937,12 @@ q5 = st.sidebar.radio(
     index=2
 )
 
+sin_stock_exclusions = st.sidebar.multiselect(
+    "6. Exclude these sin industries",
+    SIN_INDUSTRIES,
+    default=[],
+)
+
 risk_scores = {
     "Sell most of it immediately": 10,
     "Sell part of it and wait": 7,
@@ -949,6 +985,8 @@ if ticker1:
         st.sidebar.markdown(
             f"**{profile1['name']}**  \nSector: {profile1['sector']}  \nIndustry: {profile1['industry']}"
         )
+        if is_sin_industry(profile1["industry"]):
+            render_sin_warning()
     else:
         st.sidebar.markdown("Sector: Unavailable  \nIndustry: Unavailable")
 
@@ -959,6 +997,8 @@ if ticker2:
         st.sidebar.markdown(
             f"**{profile2['name']}**  \nSector: {profile2['sector']}  \nIndustry: {profile2['industry']}"
         )
+        if is_sin_industry(profile2["industry"]):
+            render_sin_warning()
     else:
         st.sidebar.markdown("Sector: Unavailable  \nIndustry: Unavailable")
 
@@ -989,6 +1029,10 @@ if run_button:
         st.error("Please enter both tickers.")
     elif ticker1 == ticker2:
         st.error("Please choose two different tickers.")
+    elif profile1 and profile1["industry"] in sin_stock_exclusions:
+        st.error(f"{ticker1} belongs to an excluded sin industry: {profile1['industry']}.")
+    elif profile2 and profile2["industry"] in sin_stock_exclusions:
+        st.error(f"{ticker2} belongs to an excluded sin industry: {profile2['industry']}.")
     else:
         try:
             market_data = fetch_market_data(ticker1, ticker2, period)
