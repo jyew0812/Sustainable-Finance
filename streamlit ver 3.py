@@ -179,11 +179,11 @@ def inject_apple_theme():
                 font-size: 0.92rem;
                 font-weight: 700;
                 line-height: 1.4;
-                margin: 0 0 0.2rem 0;
+                margin: 0 0 0.05rem 0;
             }
 
             .sidebar-profile {
-                margin: 0.12rem 0 0.55rem 0;
+                margin: 0.04rem 0 0.45rem 0;
             }
 
             .sidebar-company-name {
@@ -191,7 +191,7 @@ def inject_apple_theme():
                 font-weight: 700;
                 line-height: 1.35;
                 color: #1f2937;
-                margin: 0 0 0.15rem 0;
+                margin: 0 0 0.08rem 0;
             }
 
             .sidebar-company-name.sin-stock {
@@ -376,7 +376,7 @@ def render_sin_warning():
     st.sidebar.markdown('<div class="warning-text">This is not green.</div>', unsafe_allow_html=True)
 
 
-def render_sidebar_company_profile(profile):
+def render_sidebar_company_profile(profile, selected_sin_industries):
     if not profile:
         st.sidebar.markdown(
             '<div class="sidebar-profile"><div class="sidebar-company-line">Sector: Unavailable</div>'
@@ -385,15 +385,14 @@ def render_sidebar_company_profile(profile):
         )
         return
 
-    is_sin = is_sin_industry(profile["industry"])
+    is_sin = profile["industry"] in selected_sin_industries
     company_class = "sidebar-company-name sin-stock" if is_sin else "sidebar-company-name"
-
-    if is_sin:
-        render_sin_warning()
+    warning_html = '<div class="warning-text">This is not green.</div>' if is_sin else ""
 
     st.sidebar.markdown(
         f"""
         <div class="sidebar-profile">
+            {warning_html}
             <div class="{company_class}">{profile['name']}</div>
             <div class="sidebar-company-line">Sector: {profile['sector']}</div>
             <div class="sidebar-company-line">Industry: {profile['industry']}</div>
@@ -1031,12 +1030,12 @@ st.sidebar.header("Asset Inputs")
 ticker1 = st.sidebar.text_input("Ticker for Asset 1", value="AAPL").strip().upper()
 profile1 = fetch_ticker_profile(ticker1)
 if ticker1:
-    render_sidebar_company_profile(profile1)
+    render_sidebar_company_profile(profile1, sin_stock_exclusions)
 
 ticker2 = st.sidebar.text_input("Ticker for Asset 2", value="MSFT").strip().upper()
 profile2 = fetch_ticker_profile(ticker2)
 if ticker2:
-    render_sidebar_company_profile(profile2)
+    render_sidebar_company_profile(profile2, sin_stock_exclusions)
 
 lookback_years = st.sidebar.slider(
     "Historical lookback period (years)",
