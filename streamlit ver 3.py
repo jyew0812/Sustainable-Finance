@@ -150,6 +150,30 @@ def inject_apple_theme():
                 overflow-wrap: anywhere;
             }
 
+            .green-card {
+                background: linear-gradient(135deg, rgba(52, 199, 89, 0.18), rgba(52, 199, 89, 0.08));
+                border: 1px solid rgba(52, 199, 89, 0.28);
+                border-radius: 22px;
+                padding: 1rem 1.1rem;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+                min-height: 150px;
+            }
+
+            .green-card-title {
+                font-size: 0.9rem;
+                line-height: 1.35;
+                color: #166534;
+                font-weight: 700;
+                margin-bottom: 0.65rem;
+                letter-spacing: 0.01em;
+            }
+
+            .green-card-line {
+                font-size: 0.98rem;
+                line-height: 1.55;
+                color: #14532d;
+            }
+
             [data-testid="stDataFrame"],
             [data-testid="stPlotlyChart"],
             [data-testid="stImage"],
@@ -297,6 +321,20 @@ def render_metric_card(column, label, value):
         <div class="metric-card">
             <div class="metric-card-label">{label}</div>
             <div class="metric-card-value">{value}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_green_cost_card(sharpe_gap, esg_gain):
+    st.markdown(
+        f"""
+        <div class="green-card">
+            <div class="green-card-title">Green Cost Calculator</div>
+            <div class="green-card-line"><strong>Sharpe ratio difference:</strong> {sharpe_gap:+.3f}</div>
+            <div class="green-card-line"><strong>ESG score gain:</strong> {esg_gain:+.2f} points</div>
+            <div class="green-card-line"><strong>Formula:</strong> Tangency Sharpe ratio - Recommended Sharpe ratio</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -672,6 +710,82 @@ def make_esg_tradeoff_figure(df, recommended):
     return fig
 
 
+def make_esg_efficient_frontier_figure(df, tangency, recommended):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    fig.patch.set_facecolor("#ffffff")
+    ax.set_facecolor("#ffffff")
+
+    curve = df.sort_values("ESG_Score")
+    frontier_color = "#5e5ce6"
+    tangency_color = "#ff6b6b"
+    recommended_color = "#34c759"
+    guide_color = "#f59e0b"
+
+    ax.plot(curve["ESG_Score"], curve["Sharpe_Ratio"], linewidth=2.8, color=frontier_color)
+    ax.scatter(
+        tangency["ESG_Score"], tangency["Sharpe_Ratio"], s=220, marker="*",
+        color=tangency_color, edgecolors="white", linewidths=1.0
+    )
+    ax.scatter(
+        recommended["ESG_Score"], recommended["Sharpe_Ratio"], s=180, marker="D",
+        color=recommended_color, edgecolors="white", linewidths=1.2
+    )
+
+    ax.hlines(
+        tangency["Sharpe_Ratio"],
+        xmin=tangency["ESG_Score"],
+        xmax=recommended["ESG_Score"],
+        colors=tangency_color,
+        linestyles="--",
+        linewidth=2.0,
+        alpha=0.9,
+    )
+    ax.vlines(
+        recommended["ESG_Score"],
+        ymin=recommended["Sharpe_Ratio"],
+        ymax=tangency["Sharpe_Ratio"],
+        colors=guide_color,
+        linestyles="-",
+        linewidth=2.0,
+        alpha=0.95,
+    )
+
+    add_end_label(ax, curve["ESG_Score"].iloc[-1], curve["Sharpe_Ratio"].iloc[-1], "Sharpe-ESG trade-off", frontier_color)
+    add_end_label(
+        ax,
+        tangency["ESG_Score"],
+        tangency["Sharpe_Ratio"],
+        f"Tangency | SR {tangency['Sharpe_Ratio']:.3f}",
+        tangency_color,
+    )
+    add_end_label(
+        ax,
+        recommended["ESG_Score"],
+        recommended["Sharpe_Ratio"],
+        f"Recommended | SR {recommended['Sharpe_Ratio']:.3f}",
+        recommended_color,
+    )
+
+    sharpe_gap = tangency["Sharpe_Ratio"] - recommended["Sharpe_Ratio"]
+    esg_gain = recommended["ESG_Score"] - tangency["ESG_Score"]
+    ax.annotate(
+        f"Green cost: {sharpe_gap:+.3f} SR\nESG gain: {esg_gain:+.2f}",
+        (recommended["ESG_Score"], tangency["Sharpe_Ratio"]),
+        textcoords="offset points",
+        xytext=(14, -58),
+        fontsize=10,
+        color="#92400e",
+        bbox=dict(boxstyle="round,pad=0.35", fc="#fff7ed", ec="#f59e0b", alpha=0.98)
+    )
+
+    ax.set_xlabel("Portfolio ESG Score")
+    ax.set_ylabel("Sharpe Ratio")
+    ax.set_title("ESG-Efficient Frontier (Sharpe-ESG Trade-off)")
+    style_axis(ax)
+    fig.tight_layout()
+    return fig
+
+
 def make_price_history_figure(prices, ticker1, ticker2):
     fig, ax = plt.subplots(figsize=(10, 6))
     fig.patch.set_facecolor("#ffffff")
@@ -920,6 +1034,11 @@ if run_button:
             render_metric_card(p4, "Sharpe ratio", f"{recommended['Sharpe_Ratio']:.3f}")
             render_metric_card(p5, "ESG utility", f"{recommended['Utility']:.4f}")
 
+            render_green_cost_card(
+                sharpe_gap=tangency["Sharpe_Ratio"] - recommended["Sharpe_Ratio"],
+                esg_gain=recommended["ESG_Score"] - tangency["ESG_Score"],
+            )
+
             render_section_title("Complete Portfolio")
             complete_weights_df = pd.DataFrame({
                 "Asset": [ticker1, ticker2, "Risk-free asset"],
@@ -1038,6 +1157,9 @@ if run_button:
 
             fig3 = make_esg_tradeoff_figure(df, recommended)
             st.pyplot(fig3)
+
+            fig4 = make_esg_efficient_frontier_figure(df, tangency, recommended)
+            st.pyplot(fig4)
 
         except Exception as e:
             st.error(str(e))
