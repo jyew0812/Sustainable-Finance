@@ -179,7 +179,30 @@ def inject_apple_theme():
                 font-size: 0.92rem;
                 font-weight: 700;
                 line-height: 1.4;
-                margin-top: 0.2rem;
+                margin: 0 0 0.2rem 0;
+            }
+
+            .sidebar-profile {
+                margin: 0.12rem 0 0.55rem 0;
+            }
+
+            .sidebar-company-name {
+                font-size: 0.98rem;
+                font-weight: 700;
+                line-height: 1.35;
+                color: #1f2937;
+                margin: 0 0 0.15rem 0;
+            }
+
+            .sidebar-company-name.sin-stock {
+                color: #dc2626;
+            }
+
+            .sidebar-company-line {
+                font-size: 0.92rem;
+                line-height: 1.45;
+                color: #1f2937;
+                margin: 0;
             }
 
             [data-testid="stDataFrame"],
@@ -351,6 +374,33 @@ def render_green_cost_card(sharpe_gap, esg_gain):
 
 def render_sin_warning():
     st.sidebar.markdown('<div class="warning-text">This is not green.</div>', unsafe_allow_html=True)
+
+
+def render_sidebar_company_profile(profile):
+    if not profile:
+        st.sidebar.markdown(
+            '<div class="sidebar-profile"><div class="sidebar-company-line">Sector: Unavailable</div>'
+            '<div class="sidebar-company-line">Industry: Unavailable</div></div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    is_sin = is_sin_industry(profile["industry"])
+    company_class = "sidebar-company-name sin-stock" if is_sin else "sidebar-company-name"
+
+    if is_sin:
+        render_sin_warning()
+
+    st.sidebar.markdown(
+        f"""
+        <div class="sidebar-profile">
+            <div class="{company_class}">{profile['name']}</div>
+            <div class="sidebar-company-line">Sector: {profile['sector']}</div>
+            <div class="sidebar-company-line">Industry: {profile['industry']}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def style_table(df):
@@ -981,26 +1031,12 @@ st.sidebar.header("Asset Inputs")
 ticker1 = st.sidebar.text_input("Ticker for Asset 1", value="AAPL").strip().upper()
 profile1 = fetch_ticker_profile(ticker1)
 if ticker1:
-    if profile1:
-        st.sidebar.markdown(
-            f"**{profile1['name']}**  \nSector: {profile1['sector']}  \nIndustry: {profile1['industry']}"
-        )
-        if is_sin_industry(profile1["industry"]):
-            render_sin_warning()
-    else:
-        st.sidebar.markdown("Sector: Unavailable  \nIndustry: Unavailable")
+    render_sidebar_company_profile(profile1)
 
 ticker2 = st.sidebar.text_input("Ticker for Asset 2", value="MSFT").strip().upper()
 profile2 = fetch_ticker_profile(ticker2)
 if ticker2:
-    if profile2:
-        st.sidebar.markdown(
-            f"**{profile2['name']}**  \nSector: {profile2['sector']}  \nIndustry: {profile2['industry']}"
-        )
-        if is_sin_industry(profile2["industry"]):
-            render_sin_warning()
-    else:
-        st.sidebar.markdown("Sector: Unavailable  \nIndustry: Unavailable")
+    render_sidebar_company_profile(profile2)
 
 lookback_years = st.sidebar.slider(
     "Historical lookback period (years)",
