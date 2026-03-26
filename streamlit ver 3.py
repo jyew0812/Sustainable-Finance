@@ -348,26 +348,22 @@ def render_section_title(title):
 
 def render_metric_card(column, label, value):
     column.markdown(
-        f"""
-        <div class="metric-card">
-            <div class="metric-card-label">{label}</div>
-            <div class="metric-card-value">{value}</div>
-        </div>
-        """,
+        f"""<div class="metric-card">
+<div class="metric-card-label">{label}</div>
+<div class="metric-card-value">{value}</div>
+</div>""",
         unsafe_allow_html=True,
     )
 
 
 def render_green_cost_card(sharpe_gap, esg_gain):
     st.markdown(
-        f"""
-        <div class="green-card">
-            <div class="green-card-title">Green Cost Calculator</div>
-            <div class="green-card-line"><strong>Sharpe ratio difference:</strong> {sharpe_gap:+.3f}</div>
-            <div class="green-card-line"><strong>ESG score gain:</strong> {esg_gain:+.2f} points</div>
-            <div class="green-card-line"><strong>Formula:</strong> Tangency Sharpe ratio - Recommended Sharpe ratio</div>
-        </div>
-        """,
+        f"""<div class="green-card">
+<div class="green-card-title">Green Cost Calculator</div>
+<div class="green-card-line"><strong>Sharpe ratio difference:</strong> {sharpe_gap:+.3f}</div>
+<div class="green-card-line"><strong>ESG score gain:</strong> {esg_gain:+.2f} points</div>
+<div class="green-card-line"><strong>Formula:</strong> Tangency Sharpe ratio - Recommended Sharpe ratio</div>
+</div>""",
         unsafe_allow_html=True,
     )
 
@@ -379,8 +375,7 @@ def render_sin_warning():
 def render_sidebar_company_profile(profile, selected_sin_industries):
     if not profile:
         st.sidebar.markdown(
-            '<div class="sidebar-profile"><div class="sidebar-company-line">Sector: Unavailable</div>'
-            '<div class="sidebar-company-line">Industry: Unavailable</div></div>',
+            '<div class="sidebar-profile"><div class="sidebar-company-line">Sector: Unavailable</div><div class="sidebar-company-line">Industry: Unavailable</div></div>',
             unsafe_allow_html=True,
         )
         return
@@ -390,14 +385,12 @@ def render_sidebar_company_profile(profile, selected_sin_industries):
     warning_html = '<div class="warning-text">This is not green.</div>' if is_sin else ""
 
     st.sidebar.markdown(
-        f"""
-        <div class="sidebar-profile">
-            {warning_html}
-            <div class="{company_class}">{profile['name']}</div>
-            <div class="sidebar-company-line">Sector: {profile['sector']}</div>
-            <div class="sidebar-company-line">Industry: {profile['industry']}</div>
-        </div>
-        """,
+        f"""<div class="sidebar-profile">
+{warning_html}
+<div class="{company_class}">{profile['name']}</div>
+<div class="sidebar-company-line">Sector: {profile['sector']}</div>
+<div class="sidebar-company-line">Industry: {profile['industry']}</div>
+</div>""",
         unsafe_allow_html=True,
     )
 
