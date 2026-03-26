@@ -415,25 +415,66 @@ def fetch_ticker_profile(ticker):
         return None
 
     ticker_obj = yf.Ticker(ticker)
+    info = {}
 
     try:
-        info = ticker_obj.get_info()
+        info = ticker_obj.get_info() or {}
     except Exception:
-        info = None
+        info = {}
 
     if not info:
         try:
-            info = ticker_obj.info
+            info = ticker_obj.info or {}
         except Exception:
-            info = None
+            info = {}
 
-    info = info or {}
+    sector = (
+        info.get("sector")
+        or info.get("sectorDisp")
+        or info.get("sectorKey")
+        or "Unavailable"
+    )
+    industry = (
+        info.get("industry")
+        or info.get("industryDisp")
+        or info.get("industryKey")
+        or "Unavailable"
+    )
+    short_name = (
+        info.get("shortName")
+        or info.get("longName")
+        or info.get("displayName")
+        or ticker
+    )
 
-    sector = info.get("sector") or "Unavailable"
-    industry = info.get("industry") or "Unavailable"
-    short_name = info.get("shortName") or ticker
+    if sector == "Unavailable" or industry == "Unavailable":
+        try:
+            search = yf.Search(ticker, max_results=1)
+            quotes = getattr(search, "quotes", []) or []
+        except Exception:
+            quotes = []
 
-    # Some Yahoo responses omit sector/industry in the primary info payload.
+        if quotes:
+            quote = quotes[0]
+            short_name = (
+                quote.get("shortname")
+                or quote.get("longname")
+                or quote.get("dispSecIndFlag")
+                or short_name
+            )
+            sector = (
+                quote.get("sector")
+                or quote.get("sectorDisp")
+                or quote.get("sectorKey")
+                or sector
+            )
+            industry = (
+                quote.get("industry")
+                or quote.get("industryDisp")
+                or quote.get("industryKey")
+                or industry
+            )
+
     if sector == "Unavailable" or industry == "Unavailable":
         try:
             quote_type = ticker_obj.get_history_metadata() or {}
@@ -441,9 +482,6 @@ def fetch_ticker_profile(ticker):
             quote_type = {}
 
         short_name = quote_type.get("shortName") or short_name
-
-    if sector == "Unavailable" and industry == "Unavailable" and short_name == ticker:
-        return None
 
     return {
         "name": short_name,
