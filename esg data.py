@@ -729,6 +729,63 @@ def fetch_market_data(ticker1, ticker2, period):
     }
 
 
+@st.cache_data(show_spinner=False)
+def fetch_universe_returns(tickers, period):
+    # Keep the universe manageable for app responsiveness.
+    clean_tickers = [t for t in tickers if isinstance(t, str) and t and len(t) <= 8]
+    clean_tickers = list(dict.fromkeys(clean_tickers))[:600]
+    if not clean_tickers:
+        return pd.DataFrame(columns=["ticker", "Expected_Return", "Volatility"])
+
+    all_rows = []
+    chunk_size = 120
+    for i in range(0, len(clean_tickers), chunk_size):
+        chunk = clean_tickers[i:i + chunk_size]
+        try:
+            data = yf.download(chunk, period=period, auto_adjust=True, progress=False)
+            if data.empty:
+                continue
+            prices = data["Close"].copy() if "Close" in data.columns else data.copy()
+            if isinstance(prices, pd.Series):
+                prices = prices.to_frame(name=chunk[0])
+            prices = prices.dropna(how="all")
+            returns = prices.pct_change().dropna(how="all")
+            if returns.empty:
+                continue
+            mean_returns = returns.mean() * 252
+            volatilities = returns.std() * np.sqrt(252)
+            chunk_df = pd.DataFrame(
+                {
+                    "ticker": mean_returns.index.astype(str),
+                    "Expected_Return": mean_returns.values.astype(float),
+                    "Volatility": volatilities.values.astype(float),
+                }
+            )
+            all_rows.append(chunk_df)
+        except Exception:
+            continue
+
+    if not all_rows:
+        return pd.DataFrame(columns=["ticker", "Expected_Return", "Volatility"])
+
+    out = pd.concat(all_rows, ignore_index=True)
+    out["ticker"] = out["ticker"].astype(str).str.upper().str.strip()
+    out = out.drop_duplicates(subset=["ticker"], keep="last")
+    return out
+
+
+def find_sustainable_alternatives(base_ticker, base_return, base_esg, candidates_df, top_n=5):
+    filtered = candidates_df[
+        (candidates_df["ticker"] != base_ticker)
+        & (candidates_df["Expected_Return"] >= base_return)
+        & (candidates_df["ESG"] >= base_esg)
+    ].copy()
+    if filtered.empty:
+        return filtered
+    filtered = filtered.sort_values(["Expected_Return", "ESG"], ascending=[False, False])
+    return filtered.head(top_n)
+
+
 def portfolio_return(w1, r1, r2):
     w2 = 1 - w1
     return w1 * r1 + w2 * r2
@@ -1274,6 +1331,59 @@ if run_button:
             st.table(style_table(md))
             st.write(f"Correlation between {ticker1} and {ticker2}: **{market_data['corr']:.3f}**")
             st.write(f"Risk-free rate used: **{risk_free_rate * 100:.2f}%**")
+
+            render_section_title("Alternative Sustainable Stock Finder")
+            universe_returns = fetch_universe_returns(esg_scores_df["ticker"].tolist(), period)
+            candidates = esg_scores_df.merge(universe_returns, on="ticker", how="inner")
+            candidates = candidates.dropna(subset=["Expected_Return", "ESG"])
+            candidates = candidates[~candidates["ticker"].isin([ticker1, ticker2])]
+
+            st.caption(
+                "Criteria: alternative stock must have Expected Return >= selected stock "
+                "and ESG >= selected stock."
+            )
+
+            alt1 = find_sustainable_alternatives(
+                base_ticker=ticker1,
+                base_return=market_data["r1"],
+                base_esg=esg1,
+                candidates_df=candidates,
+                top_n=5,
+            )
+            st.markdown(f"**Alternatives for {ticker1}**")
+            st.caption(f"Base thresholds: Return >= {market_data['r1']*100:.2f}%, ESG >= {esg1:.3f}")
+            if alt1.empty:
+                st.info(f"No alternatives found for {ticker1} with both higher/same return and ESG.")
+            else:
+                alt1_view = alt1[["ticker", "Expected_Return", "ESG", "E", "S", "G", "Volatility"]].copy()
+                alt1_view = alt1_view.rename(columns={"ticker": "Ticker"})
+                st.dataframe(
+                    alt1_view.style.format(
+                        {"Expected_Return": "{:.2%}", "ESG": "{:.3f}", "E": "{:.3f}", "S": "{:.3f}", "G": "{:.3f}", "Volatility": "{:.2%}"}
+                    ),
+                    use_container_width=True,
+                )
+
+            alt2 = find_sustainable_alternatives(
+                base_ticker=ticker2,
+                base_return=market_data["r2"],
+                base_esg=esg2,
+                candidates_df=candidates,
+                top_n=5,
+            )
+            st.markdown(f"**Alternatives for {ticker2}**")
+            st.caption(f"Base thresholds: Return >= {market_data['r2']*100:.2f}%, ESG >= {esg2:.3f}")
+            if alt2.empty:
+                st.info(f"No alternatives found for {ticker2} with both higher/same return and ESG.")
+            else:
+                alt2_view = alt2[["ticker", "Expected_Return", "ESG", "E", "S", "G", "Volatility"]].copy()
+                alt2_view = alt2_view.rename(columns={"ticker": "Ticker"})
+                st.dataframe(
+                    alt2_view.style.format(
+                        {"Expected_Return": "{:.2%}", "ESG": "{:.3f}", "E": "{:.3f}", "S": "{:.3f}", "G": "{:.3f}", "Volatility": "{:.2%}"}
+                    ),
+                    use_container_width=True,
+                )
 
             render_section_title("Tangency Portfolio")
             tangency_weights_df = pd.DataFrame({
