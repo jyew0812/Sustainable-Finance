@@ -502,25 +502,94 @@ def is_sin_industry(industry):
     return industry in SIN_INDUSTRIES
 
 
-ESG_DATA_PATH = r"C:\Users\red81\PycharmProjects\PythonProject\ESG Data 2026 Full.csv"
+ESG_DEFAULT_SOURCE = "https://github.com/jyew0812/Sustainable-Finance/blob/main/S.Data.xlsx"
 
 
-@st.cache_data(show_spinner=False)
-def load_esg_data(path):
-    use_columns = ["ticker", "fieldid", "fieldname", "valuedate", "valuescore"]
-    esg_raw = pd.read_csv(path, usecols=use_columns)
+def _normalise_ticker(value):
+    if value is None:
+        return ""
+    return str(value).strip().upper()
 
-    esg_raw["ticker"] = esg_raw["ticker"].astype(str).str.upper().str.strip()
-    esg_raw["fieldid"] = pd.to_numeric(esg_raw["fieldid"], errors="coerce").astype("Int64")
-    esg_raw["valuescore"] = pd.to_numeric(esg_raw["valuescore"], errors="coerce")
-    esg_raw["valuedate"] = pd.to_datetime(esg_raw["valuedate"], errors="coerce")
 
-    esg_filtered = esg_raw[esg_raw["fieldid"].isin([4, 5, 6])].copy()
+def _ticker_variants(ticker):
+    t = _normalise_ticker(ticker)
+    if not t:
+        return []
+    variants = [t]
+    if "-" in t:
+        variants.append(t.replace("-", "."))
+    if "." in t:
+        variants.append(t.replace(".", "-"))
+    return list(dict.fromkeys(variants))
+
+
+def _to_raw_github_url(source):
+    if not isinstance(source, str):
+        return source
+    if "github.com" in source and "/blob/" in source:
+        source = source.replace("https://github.com/", "https://raw.githubusercontent.com/")
+        source = source.replace("/blob/", "/")
+    return source
+
+
+def _load_esg_data_impl(path_or_file):
+    required = ["ticker", "fieldid", "valuedate", "valuescore"]
+    source = _to_raw_github_url(path_or_file)
+    source_name = getattr(path_or_file, "name", str(source)).lower()
+
+    if source_name.endswith(".xlsx") or source_name.endswith(".xls"):
+        try:
+            esg_raw = pd.read_excel(source, dtype=str)
+        except Exception as exc:
+            raise ValueError(f"Unable to read ESG Excel file: {exc}")
+        esg_raw.columns = [str(c).strip().lower() for c in esg_raw.columns]
+        missing = [c for c in required if c not in esg_raw.columns]
+        if missing:
+            raise ValueError(f"Missing required ESG columns in Excel file: {missing}")
+        esg_filtered = esg_raw[required].copy()
+        esg_filtered = esg_filtered[esg_filtered["fieldid"].isin(["4", "5", "6"])]
+    else:
+        chunks = []
+        last_error = None
+        for enc in ["utf-8", "utf-8-sig", "cp1252", "latin1"]:
+            try:
+                reader = pd.read_csv(
+                    source,
+                    usecols=lambda c: str(c).strip().lower() in required,
+                    dtype=str,
+                    chunksize=300000,
+                    encoding=enc,
+                )
+                for chunk in reader:
+                    chunk.columns = [str(c).strip().lower() for c in chunk.columns]
+                    missing_cols = [c for c in required if c not in chunk.columns]
+                    if missing_cols:
+                        continue
+                    chunk = chunk[required]
+                    chunk = chunk[chunk["fieldid"].isin(["4", "5", "6"])]
+                    chunks.append(chunk)
+                last_error = None
+                break
+            except Exception as exc:
+                chunks = []
+                last_error = exc
+
+        if last_error is not None:
+            raise ValueError(f"Unable to read ESG CSV file: {last_error}")
+        if not chunks:
+            raise ValueError("No ESG rows were found for fieldid 4, 5, 6 in the ESG CSV file.")
+        esg_filtered = pd.concat(chunks, ignore_index=True)
+
+    esg_filtered["ticker"] = esg_filtered["ticker"].map(_normalise_ticker)
+    esg_filtered["fieldid"] = pd.to_numeric(esg_filtered["fieldid"], errors="coerce").astype("Int64")
+    esg_filtered["valuescore"] = pd.to_numeric(esg_filtered["valuescore"], errors="coerce")
+    esg_filtered["valuedate"] = pd.to_datetime(esg_filtered["valuedate"], errors="coerce")
+
     esg_filtered = esg_filtered.dropna(subset=["ticker", "fieldid", "valuescore"])
     esg_filtered = esg_filtered.sort_values(["ticker", "fieldid", "valuedate"])
-    esg_filtered = esg_filtered.drop_duplicates(subset=["ticker", "fieldid"], keep="last")
+    latest_by_ticker = esg_filtered.drop_duplicates(subset=["ticker", "fieldid"], keep="last")
 
-    pivot = esg_filtered.pivot(index="ticker", columns="fieldid", values="valuescore").reset_index()
+    pivot = latest_by_ticker.pivot(index="ticker", columns="fieldid", values="valuescore").reset_index()
     pivot = pivot.rename(columns={4: "E", 5: "G", 6: "S"})
 
     for col in ["E", "G", "S"]:
@@ -531,6 +600,16 @@ def load_esg_data(path):
     esg_lookup = pivot.set_index("ticker")[["E", "G", "S", "ESG"]].to_dict(orient="index")
 
     return esg_filtered, pivot[["ticker", "E", "G", "S", "ESG"]], esg_lookup
+
+
+@st.cache_data(show_spinner=False)
+def load_esg_data_from_path(path):
+    return _load_esg_data_impl(path)
+
+
+def load_esg_data_from_uploaded(uploaded_file):
+    uploaded_file.seek(0)
+    return _load_esg_data_impl(uploaded_file)
 
 
 @st.cache_data(show_spinner=False)
@@ -1070,18 +1149,35 @@ gamma = risk_total / 3
 lambda_raw_avg = esg_total / 2
 lambda_esg = lambda_raw_avg / 100
 
-esg_filtered_df, esg_scores_df, esg_lookup = load_esg_data(ESG_DATA_PATH)
+uploaded_esg_file = st.sidebar.file_uploader(
+    "Upload ESG data (optional)",
+    type=["csv", "xlsx", "xls"],
+    help="If not uploaded, the app will load ESG data from the default GitHub source.",
+)
+
+if uploaded_esg_file is not None:
+    esg_filtered_df, esg_scores_df, esg_lookup = load_esg_data_from_uploaded(uploaded_esg_file)
+else:
+    esg_filtered_df, esg_scores_df, esg_lookup = load_esg_data_from_path(ESG_DEFAULT_SOURCE)
 
 st.sidebar.header("Asset Inputs")
 ticker1 = st.sidebar.text_input("Ticker for Asset 1", value="AAPL").strip().upper()
 profile1 = fetch_ticker_profile(ticker1)
-esg1_data = esg_lookup.get(ticker1)
+esg1_data = None
+for key in _ticker_variants(ticker1):
+    esg1_data = esg_lookup.get(key)
+    if esg1_data is not None:
+        break
 if ticker1:
     render_sidebar_company_profile(profile1, sin_stock_exclusions, esg1_data)
 
 ticker2 = st.sidebar.text_input("Ticker for Asset 2", value="MSFT").strip().upper()
 profile2 = fetch_ticker_profile(ticker2)
-esg2_data = esg_lookup.get(ticker2)
+esg2_data = None
+for key in _ticker_variants(ticker2):
+    esg2_data = esg_lookup.get(key)
+    if esg2_data is not None:
+        break
 if ticker2:
     render_sidebar_company_profile(profile2, sin_stock_exclusions, esg2_data)
 
