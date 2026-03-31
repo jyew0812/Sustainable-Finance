@@ -377,12 +377,12 @@ def render_sidebar_company_profile(profile, selected_sin_industries, esg_details
         if esg_details:
             esg_html = (
                 f'<div class="sidebar-company-line">ESG: {esg_details["ESG"]:.3f}</div>'
-                f'<div class="sidebar-company-line">E: {esg_details["E"]:.3f} | G: {esg_details["G"]:.3f} | S: {esg_details["S"]:.3f}</div>'
+                f'<div class="sidebar-company-line">E: {esg_details["E"]:.3f} | S: {esg_details["S"]:.3f} | G: {esg_details["G"]:.3f}</div>'
             )
         else:
             esg_html = (
                 '<div class="sidebar-company-line">ESG: Unavailable</div>'
-                '<div class="sidebar-company-line">E: Unavailable | G: Unavailable | S: Unavailable</div>'
+                '<div class="sidebar-company-line">E: Unavailable | S: Unavailable | G: Unavailable</div>'
             )
         st.sidebar.markdown(
             f'<div class="sidebar-profile"><div class="sidebar-company-line">Sector: Unavailable</div><div class="sidebar-company-line">Industry: Unavailable</div>{esg_html}</div>',
@@ -396,12 +396,12 @@ def render_sidebar_company_profile(profile, selected_sin_industries, esg_details
     if esg_details:
         esg_html = (
             f'<div class="sidebar-company-line">ESG: {esg_details["ESG"]:.3f}</div>'
-            f'<div class="sidebar-company-line">E: {esg_details["E"]:.3f} | G: {esg_details["G"]:.3f} | S: {esg_details["S"]:.3f}</div>'
+            f'<div class="sidebar-company-line">E: {esg_details["E"]:.3f} | S: {esg_details["S"]:.3f} | G: {esg_details["G"]:.3f}</div>'
         )
     else:
         esg_html = (
             '<div class="sidebar-company-line">ESG: Unavailable</div>'
-            '<div class="sidebar-company-line">E: Unavailable | G: Unavailable | S: Unavailable</div>'
+            '<div class="sidebar-company-line">E: Unavailable | S: Unavailable | G: Unavailable</div>'
         )
 
     st.sidebar.markdown(
@@ -1053,6 +1053,19 @@ def make_price_history_figure(prices, ticker1, ticker2):
 # =========================
 # Sidebar inputs
 # =========================
+st.sidebar.markdown("### ESG Data")
+uploaded_esg_file = st.sidebar.file_uploader(
+    "Upload ESG file",
+    type=["csv", "xlsx", "xls"],
+    help="Optional. If empty, the app uses the default GitHub ESG file.",
+)
+st.sidebar.caption("Expected fields: `ticker`, `fieldid` (4/5/6), `valuescore`.")
+
+if uploaded_esg_file is not None:
+    esg_filtered_df, esg_scores_df, esg_lookup = load_esg_data_from_uploaded(uploaded_esg_file)
+else:
+    esg_filtered_df, esg_scores_df, esg_lookup = load_esg_data_from_path(ESG_DEFAULT_SOURCE)
+
 st.sidebar.header("Investor Survey")
 
 q1 = st.sidebar.radio(
@@ -1149,17 +1162,6 @@ gamma = risk_total / 3
 lambda_raw_avg = esg_total / 2
 lambda_esg = lambda_raw_avg / 100
 
-uploaded_esg_file = st.sidebar.file_uploader(
-    "Upload ESG data (optional)",
-    type=["csv", "xlsx", "xls"],
-    help="If not uploaded, the app will load ESG data from the default GitHub source.",
-)
-
-if uploaded_esg_file is not None:
-    esg_filtered_df, esg_scores_df, esg_lookup = load_esg_data_from_uploaded(uploaded_esg_file)
-else:
-    esg_filtered_df, esg_scores_df, esg_lookup = load_esg_data_from_path(ESG_DEFAULT_SOURCE)
-
 st.sidebar.header("Asset Inputs")
 ticker1 = st.sidebar.text_input("Ticker for Asset 1", value="AAPL").strip().upper()
 profile1 = fetch_ticker_profile(ticker1)
@@ -1168,6 +1170,17 @@ for key in _ticker_variants(ticker1):
     esg1_data = esg_lookup.get(key)
     if esg1_data is not None:
         break
+if esg1_data is None or pd.isna(esg1_data.get("E")) or pd.isna(esg1_data.get("S")) or pd.isna(esg1_data.get("G")):
+    st.sidebar.caption(f"ESG data unavailable for {ticker1 or 'Asset 1'}. Enter E, S, G manually.")
+    e1_manual = st.sidebar.slider(f"E score for {ticker1 or 'Asset 1'}", min_value=0.0, max_value=1.0, value=0.5, step=0.01, key="e1_manual")
+    s1_manual = st.sidebar.slider(f"S score for {ticker1 or 'Asset 1'}", min_value=0.0, max_value=1.0, value=0.5, step=0.01, key="s1_manual")
+    g1_manual = st.sidebar.slider(f"G score for {ticker1 or 'Asset 1'}", min_value=0.0, max_value=1.0, value=0.5, step=0.01, key="g1_manual")
+    esg1_data = {
+        "E": e1_manual,
+        "S": s1_manual,
+        "G": g1_manual,
+        "ESG": 0.33 * e1_manual + 0.33 * g1_manual + 0.33 * s1_manual,
+    }
 if ticker1:
     render_sidebar_company_profile(profile1, sin_stock_exclusions, esg1_data)
 
@@ -1178,6 +1191,17 @@ for key in _ticker_variants(ticker2):
     esg2_data = esg_lookup.get(key)
     if esg2_data is not None:
         break
+if esg2_data is None or pd.isna(esg2_data.get("E")) or pd.isna(esg2_data.get("S")) or pd.isna(esg2_data.get("G")):
+    st.sidebar.caption(f"ESG data unavailable for {ticker2 or 'Asset 2'}. Enter E, S, G manually.")
+    e2_manual = st.sidebar.slider(f"E score for {ticker2 or 'Asset 2'}", min_value=0.0, max_value=1.0, value=0.5, step=0.01, key="e2_manual")
+    s2_manual = st.sidebar.slider(f"S score for {ticker2 or 'Asset 2'}", min_value=0.0, max_value=1.0, value=0.5, step=0.01, key="s2_manual")
+    g2_manual = st.sidebar.slider(f"G score for {ticker2 or 'Asset 2'}", min_value=0.0, max_value=1.0, value=0.5, step=0.01, key="g2_manual")
+    esg2_data = {
+        "E": e2_manual,
+        "S": s2_manual,
+        "G": g2_manual,
+        "ESG": 0.33 * e2_manual + 0.33 * g2_manual + 0.33 * s2_manual,
+    }
 if ticker2:
     render_sidebar_company_profile(profile2, sin_stock_exclusions, esg2_data)
 
@@ -1207,10 +1231,6 @@ if run_button:
         st.error("Please enter both tickers.")
     elif ticker1 == ticker2:
         st.error("Please choose two different tickers.")
-    elif pd.isna(esg1):
-        st.error(f"No ESG data found in CSV for ticker {ticker1}.")
-    elif pd.isna(esg2):
-        st.error(f"No ESG data found in CSV for ticker {ticker2}.")
     elif profile1 and profile1["industry"] in sin_stock_exclusions:
         st.error(f"{ticker1} belongs to an excluded sin industry: {profile1['industry']}.")
     elif profile2 and profile2["industry"] in sin_stock_exclusions:
@@ -1254,24 +1274,6 @@ if run_button:
             st.table(style_table(md))
             st.write(f"Correlation between {ticker1} and {ticker2}: **{market_data['corr']:.3f}**")
             st.write(f"Risk-free rate used: **{risk_free_rate * 100:.2f}%**")
-
-            render_section_title("ESG Source Data (FieldID 4, 5, 6)")
-            selected_esg_rows = esg_filtered_df[esg_filtered_df["ticker"].isin([ticker1, ticker2])].copy()
-            selected_esg_rows["fieldid"] = selected_esg_rows["fieldid"].map(
-                {4: "E (Environmental)", 5: "G (Governance)", 6: "S (Social)"}
-            )
-            selected_esg_rows = selected_esg_rows.rename(
-                columns={
-                    "ticker": "Ticker",
-                    "fieldid": "Field",
-                    "valuescore": "valuescore",
-                    "valuedate": "Value Date",
-                }
-            )
-            st.dataframe(
-                selected_esg_rows[["Ticker", "Field", "valuescore", "Value Date"]],
-                use_container_width=True,
-            )
 
             render_section_title("Tangency Portfolio")
             tangency_weights_df = pd.DataFrame({
