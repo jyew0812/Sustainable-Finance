@@ -238,16 +238,17 @@ def inject_apple_theme():
 
 def render_hero():
     logo_path = Path(__file__).with_name("ESG logo.png")
-    logo_html = ""
+    logo_src = "https://raw.githubusercontent.com/jyew0812/Sustainable-Finance/2c5bfb9bdef7e7c6aa2007c3783ef4170b30827b/finalized/ESG%20logo.png"
     if logo_path.exists():
         logo_b64 = base64.b64encode(logo_path.read_bytes()).decode("ascii")
-        logo_html = (
-            f'<div style="display:flex;justify-content:flex-end;align-items:center;height:100%;">'
-            f'<img src="data:image/png;base64,{logo_b64}" '
-            f'style="max-width:560px;width:100%;height:auto;object-fit:contain;filter:drop-shadow(0 12px 30px rgba(0,0,0,0.38));" '
-            f'alt="ESGenius logo" />'
-            f'</div>'
-        )
+        logo_src = f"data:image/png;base64,{logo_b64}"
+    logo_html = (
+        f'<div style="display:flex;justify-content:flex-end;align-items:center;height:100%;">'
+        f'<img src="{logo_src}" '
+        f'style="max-width:560px;width:100%;height:auto;object-fit:contain;filter:drop-shadow(0 12px 30px rgba(0,0,0,0.38));" '
+        f'alt="ESGenius logo" />'
+        f'</div>'
+    )
 
     st.markdown(
         f"""

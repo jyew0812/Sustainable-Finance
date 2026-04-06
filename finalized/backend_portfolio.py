@@ -53,7 +53,7 @@ def classify_esg(lambda_raw_avg):
         return 'ESG-Aware'
     return 'Low ESG Priority'
 SIN_INDUSTRIES = ['Tobacco', 'Gambling', 'Resorts & Casinos', 'Oil & Gas E&P', 'Oil & Gas Integrated', 'Oil & Gas Midstream', 'Oil & Gas Refining & Marketing', 'Oil & Gas Equipment & Services', 'Oil & Gas Drilling', 'Thermal Coal']
-ESG_DEFAULT_SOURCE = r'C:\\Users\\User\\OneDrive - Queen Mary, University of London\\Year 2\\SEM A\\python\\.venv\\file\\sustainable armaan\\clean_esg_app_data.csv'
+ESG_DEFAULT_SOURCE = 'https://raw.githubusercontent.com/jyew0812/Sustainable-Finance/2c5bfb9bdef7e7c6aa2007c3783ef4170b30827b/finalized/clean_esg_app_data.csv'
 
 def _normalise_ticker(value):
     if value is None:
