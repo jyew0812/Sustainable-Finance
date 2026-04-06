@@ -1,6 +1,7 @@
 streamlit
-yfinance
-pandas
 numpy
+pandas
 matplotlib
+yfinance
 openpyxl
+requests
