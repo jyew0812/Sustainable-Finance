@@ -1,4 +1,4 @@
-﻿# Backend portfolio logic (data loading, analytics, and chart helpers)
+# Backend portfolio logic (data loading, analytics, and chart helpers)
 
 import numpy as np
 import pandas as pd
@@ -606,7 +606,7 @@ def style_axis(ax, x_percent=False, y_percent=False):
     ax.spines['bottom'].set_linewidth(1.0)
     ax.set_axisbelow(True)
     ax.set_facecolor('#f7f9fc')
-    ax.grid(True, color='#e2e8f0', linewidth=0.85, alpha=0.95)
+    ax.grid(False)
     ax.tick_params(colors='#56637a', labelsize=10.5)
     ax.xaxis.label.set_color('#415067')
     ax.yaxis.label.set_color('#415067')
@@ -642,7 +642,7 @@ def _chart_title(ax, title):
     ax.set_title(title, loc='left', pad=12)
 
 def _style_legend(ax, **kwargs):
-    ax.legend(frameon=False, labelcolor='#415067', **kwargs)
+    ax.legend(frameon=False, fancybox=False, framealpha=0.0, edgecolor='none', facecolor='none', labelcolor='#415067', **kwargs)
 
 def _asset_palette(n_assets):
     cmap = plt.cm.get_cmap('tab10', max(n_assets, 1))
@@ -907,9 +907,10 @@ def make_esg_radar_figure(asset_esg_data, w_e, w_s, w_g):
     ax.set_ylim(0, 1)
     ax.set_yticks([0.25, 0.5, 0.75, 1.0])
     ax.set_yticklabels(['0.25', '0.50', '0.75', '1.00'], size=9, color='#94a3b8')
-    ax.grid(color=COLORS['line_soft'], linewidth=0.8)
+    ax.grid(False)
     ax.spines['polar'].set_color(COLORS['line_soft'])
     ax.set_title('ESG Dimension Radar', size=16, color='#1f2f46', pad=20, fontweight='700')
     _style_legend(ax, loc='upper right', bbox_to_anchor=(1.38, 1.15))
     fig.tight_layout()
     return fig
+

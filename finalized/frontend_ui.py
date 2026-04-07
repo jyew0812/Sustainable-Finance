@@ -246,7 +246,7 @@ def render_hero():
         f'<div style="display:flex;justify-content:flex-end;align-items:center;height:100%;">'
         f'<img src="{logo_src}" '
         f'style="max-width:560px;width:100%;height:auto;object-fit:contain;filter:drop-shadow(0 12px 30px rgba(0,0,0,0.38));" '
-        f'alt="ESGenius logo" />'
+        f'alt="Greengate logo" />'
         f'</div>'
     )
 
@@ -257,8 +257,8 @@ def render_hero():
             <div style="flex:1 1 520px;min-width:320px;">
               <div class="hero-eyebrow">Sustainable Portfolio Intelligence</div>
               <h1 class="hero-title">
-                <span style="color:#2d5c88;font-size:clamp(2.8rem,5vw,4.2rem);font-weight:800;letter-spacing:-0.05em;">ESG</span>
-                <span style="color:#2f7a59;font-size:clamp(2.8rem,5vw,4.2rem);font-weight:800;letter-spacing:-0.05em;">enius</span>
+                <span style="color:#2d5c88;font-size:clamp(2.8rem,5vw,4.2rem);font-weight:800;letter-spacing:-0.05em;">Green</span>
+                <span style="color:#2f7a59;font-size:clamp(2.8rem,5vw,4.2rem);font-weight:800;letter-spacing:-0.05em;">gate</span>
               </h1>
               <p class="hero-subtitle">Invest smarter. Invest greener.</p>
               <p class="hero-description">
@@ -618,6 +618,7 @@ def render_recommendation_summary(tickers, recommended, tangency, complete_portf
     compatibility_text = ' '.join(compatibility_bits)
     points_html = ''.join((f'<div style="display:flex;gap:0.6rem;align-items:flex-start;margin-bottom:0.4rem;"><span style="color:#2d5c88;font-weight:700;flex-shrink:0;"></span><span style="font-size:0.92rem;line-height:1.6;color:#4f5f6e;">{p}</span></div>' for p in points[:6]))
     st.markdown(f"""<div style="background:#ffffff; border:1px solid #d7dee5;border-radius:20px;padding:2rem 2.2rem; box-shadow:0 10px 28px rgba(15,23,42,0.08);margin-top:0.5rem;"> <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.6rem;flex-wrap: wrap;"> <div style="background:{verdict_bg};border:1.5px solid {verdict_border};border-radius:12px; padding:0.55rem 1.2rem;"> <span style="font-size:1rem;font-weight:700;color:{verdict_color};">{verdict}</span> </div> <div style="font-size:0.82rem;color:#667380;font-weight:500;">Portfolio recommendation summary</div> </div> <div style="margin-bottom:1.4rem;"> <div style="font-size:0.74rem;font-weight:700;color:#2d5c88;letter-spacing:0.07em;margin-bottom:0.5rem;">RECOMMENDED ALLOCATION</div> <p style="font-size:0.96rem;line-height:1.8;color:#1f2933;margin:0;"> As a <strong>{risk_label}</strong>, <strong>{esg_label}</strong> investor with a primary focus on <strong>{primary_focus}</strong>, your optimal portfolio allocates {allocation_text}. Expected annual return: <strong>{rec_ret:.2f}%</strong> at <strong>{rec_vol:.2f}%</strong> annualised volatility (Sharpe ratio: <strong>{rec_sharpe:.3f}</strong>).{amount_str} </p> </div> <div style="margin-bottom:1.4rem;"> <div style="font-size:0.74rem;font-weight:700;color:#3e5d78;letter-spacing:0.07em;margin-bottom:0.5rem;">RISK &amp; SUSTAINABILITY BALANCE</div> <p style="font-size:0.96rem;line-height:1.8;color:#1f2933;margin:0;"> Your ESG-adjusted portfolio achieves a combined ESG score of <strong>{rec_esg:.2f}</strong>, {green_cost_text}. The pure financial optimum (tangency portfolio) offers a Sharpe ratio of <strong>{tan_sharpe:.3f}</strong> vs. <strong>{rec_sharpe:.3f}</strong> for your ESG-weighted portfolio  reflecting your sustainability commitment of <strong>{lambda_raw_avg:.1f}/4</strong>. </p> </div> <div style="margin-bottom:1.4rem;"> <div style="font-size:0.74rem;font-weight:700;color:#2f7a59;letter-spacing:0.07em;margin-bottom:0.5rem;">ESG COMPATIBILITY</div> <p style="font-size:0.96rem;line-height:1.8;color:#1f2933;margin:0;"> {compatibility_text} Your {primary_focus} emphasis ({dim_weights[primary_dim]:.0%} weight) is the primary lens through which these holdings are evaluated. </p> </div> <div> <div style="font-size:0.74rem;font-weight:700;color:#667380;letter-spacing:0.07em;margin-bottom:0.65rem;">KEY TAKEAWAYS</div> {points_html} </div> </div>""", unsafe_allow_html=True)
+
 
 
 

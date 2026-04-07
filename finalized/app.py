@@ -1,4 +1,4 @@
-﻿import numpy as np
+import numpy as np
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
@@ -9,7 +9,7 @@ from backend_portfolio import (
     SIN_INDUSTRIES, ESG_DEFAULT_SOURCE, weighted_esg,
     _ticker_variants, load_esg_data_from_path,
     fetch_ticker_profile, fetch_market_data, fetch_universe_returns,
-    find_sustainable_alternatives, portfolio_return, portfolio_variance,
+    portfolio_return, portfolio_variance,
     portfolio_esg, esg_utility_function, build_portfolio_table,
     select_recommended_portfolio, select_max_sharpe_portfolio,
     build_complete_portfolio, classify_risk, classify_esg,
@@ -23,7 +23,7 @@ from frontend_ui import (
     render_table, render_recommendation_summary, style_table,
 )
 
-st.set_page_config(page_title="ESGenius", page_icon="", layout="wide")
+st.set_page_config(page_title="Greengate", page_icon="", layout="wide")
 
 inject_apple_theme()
 render_hero()
@@ -534,24 +534,33 @@ if st.session_state.get("run_optimisation", False):
                 md_table_html = style_table(md).to_html()
                 corr_label = "Correlation" if len(tickers) == 2 else "Avg correlation"
 
+                render_section_title("Charts")
+                ch_col1, ch_col2 = st.columns(2)
+                with ch_col1:
+                    st.pyplot(fig0, width="stretch")
+                with ch_col2:
+                    st.pyplot(fig1, width="stretch")
+                ch_col3, ch_col4 = st.columns(2)
+                with ch_col3:
+                    st.pyplot(fig2, width="stretch")
+
+
+
                 top_left, top_right = st.columns([1.12, 1.35], gap="large")
                 with top_left:
                     render_section_title("Market Data Summary")
                     st.markdown(
                         f"""
                         <div style="width:100%;background:#ffffff;border:1px solid #d7dee5;border-radius:16px;padding:0.6rem;box-shadow:0 8px 18px rgba(15,23,42,0.06);">
-                          <div style="display:grid;grid-template-columns:minmax(360px,1fr) 185px 185px;gap:0.7rem;align-items:start;width:100%;">
+                          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0.7rem;align-items:start;width:100%;">
                             <div style="min-width:0;overflow-x:auto;">{md_table_html}</div>
-                            <div class="metric-card" style="min-height:96px;display:flex;flex-direction:column;justify-content:center;padding:0.65rem 0.8rem;">
-                              <div class="metric-card-label">{corr_label}</div>
-                              <div class="metric-card-value" style="font-size:1.35rem;line-height:1.1;">{avg_corr:.3f}</div>
-                            </div>
-                            <div class="metric-card" style="min-height:96px;display:flex;flex-direction:column;justify-content:center;padding:0.65rem 0.8rem;">
-                              <div class="metric-card-label">Risk-free</div>
-                              <div class="metric-card-value" style="font-size:1.35rem;line-height:1.1;">{risk_free_rate * 100:.2f}%</div>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.5rem;">
+                              {_small_stat_card(corr_label, f"{avg_corr:.3f}")}
+                              {_small_stat_card("Risk-free", f"{risk_free_rate * 100:.2f}%")}
                             </div>
                           </div>
                         </div>
+
                         """,
                         unsafe_allow_html=True,
                     )
@@ -560,9 +569,9 @@ if st.session_state.get("run_optimisation", False):
                     st.markdown(
                         f"""
                         <div style="width:100%;background:#ffffff;border:1px solid #d7dee5;border-radius:16px;padding:0.6rem;box-shadow:0 8px 18px rgba(15,23,42,0.06);">
-                          <div style="display:grid;grid-template-columns:minmax(340px,1.45fr) minmax(250px,1fr);gap:0.6rem;align-items:start;width:100%;">
+                          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0.6rem;align-items:start;width:100%;">
                             <div style="min-width:0;overflow-x:auto;">{tan_table_html}</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.5rem;">
                               {_small_stat_card("Expected return", f"{tangency['Expected_Return']*100:.2f}%")}
                               {_small_stat_card("Volatility", f"{tangency['Risk_SD']*100:.2f}%")}
                               {_small_stat_card("Sharpe ratio", f"{tangency['Sharpe_Ratio']:.3f}")}
@@ -597,9 +606,9 @@ if st.session_state.get("run_optimisation", False):
                     st.markdown(
                         f"""
                         <div style="width:100%;background:#ffffff;border:1px solid #d7dee5;border-radius:16px;padding:0.6rem;box-shadow:0 8px 18px rgba(15,23,42,0.06);">
-                          <div style="display:grid;grid-template-columns:minmax(300px,1.45fr) minmax(250px,1fr);gap:0.45rem;align-items:start;width:100%;">
+                          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0.45rem;align-items:start;width:100%;">
                             <div style="min-width:0;overflow-x:auto;">{rec_table_html}</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.5rem;">
                               {_small_stat_card("Expected return", f"{recommended['Expected_Return']*100:.2f}%")}
                               {_small_stat_card("Volatility", f"{recommended['Risk_SD']*100:.2f}%")}
                               {_small_stat_card("ESG score", f"{recommended['ESG_Score']:.2f}")}
@@ -616,9 +625,9 @@ if st.session_state.get("run_optimisation", False):
                     st.markdown(
                         f"""
                         <div style="width:100%;background:#ffffff;border:1px solid #d7dee5;border-radius:16px;padding:0.6rem;box-shadow:0 8px 18px rgba(15,23,42,0.06);">
-                          <div style="display:grid;grid-template-columns:minmax(300px,1.45fr) minmax(250px,1fr);gap:0.45rem;align-items:start;width:100%;">
+                          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0.45rem;align-items:start;width:100%;">
                             <div style="min-width:0;overflow-x:auto;">{comp_table_html}</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.5rem;">
                               {_small_stat_card("Tangency weight (y)", f"{complete_portfolio['y']:.3f}")}
                               {_small_stat_card("Risk-free weight", f"{complete_portfolio['weight_risk_free']:.3f}")}
                               {_small_stat_card("Expected return", f"{complete_portfolio['Expected_Return']*100:.2f}%")}
@@ -717,16 +726,6 @@ if st.session_state.get("run_optimisation", False):
                     f"Difference: {util_delta:+.4f}"
                 )
 
-                render_section_title("Charts")
-                ch_col1, ch_col2 = st.columns(2)
-                with ch_col1:
-                    st.pyplot(fig0, width="stretch")
-                with ch_col2:
-                    st.pyplot(fig1, width="stretch")
-                ch_col3, ch_col4 = st.columns(2)
-                with ch_col3:
-                    st.pyplot(fig2, width="stretch")
-
                 if st.button("Next ", key="next_tab2"):
                     st.session_state["active_tab"] = 2
 
@@ -823,37 +822,6 @@ if st.session_state.get("run_optimisation", False):
 # TAB 4 - Alternative Stocks
 # --------------------------------------------------
             with tab4:
-                render_section_title("Alternative Sustainable Stock Finder")
-                st.caption(
-                    "Criteria: alternative stock must have Expected Return >= selected stock "
-                    "and ESG >= selected stock."
-                )
-                for start in range(0, len(tickers), 3):
-                    alt_cols = st.columns(3, gap="large")
-                    for col_idx, ticker in enumerate(tickers[start:start + 3]):
-                        alt = find_sustainable_alternatives(
-                            base_ticker=ticker,
-                            base_return=float(mean_returns.loc[ticker]),
-                            base_esg=float(esg_scores.loc[ticker]),
-                            candidates_df=candidates,
-                            top_n=5,
-                        )
-                        with alt_cols[col_idx]:
-                            st.markdown(f"**Alternatives for {ticker}**")
-                            st.caption(f"Base thresholds: Return >= {mean_returns.loc[ticker]*100:.2f}%, ESG >= {esg_scores.loc[ticker]:.3f}")
-                            if alt.empty:
-                                st.info(f"No alternatives found for {ticker} with both higher/same return and ESG.")
-                            else:
-                                alt_view = alt[["ticker", "Expected_Return", "ESG", "E", "S", "G", "Volatility"]].copy()
-                                alt_view = alt_view.rename(columns={"ticker": "Ticker"})
-                                alt_view["Expected_Return"] = alt_view["Expected_Return"].map(lambda x: f"{x:.2%}")
-                                alt_view["ESG"] = alt_view["ESG"].map(lambda x: f"{x:.3f}")
-                                alt_view["E"] = alt_view["E"].map(lambda x: f"{x:.3f}")
-                                alt_view["S"] = alt_view["S"].map(lambda x: f"{x:.3f}")
-                                alt_view["G"] = alt_view["G"].map(lambda x: f"{x:.3f}")
-                                alt_view["Volatility"] = alt_view["Volatility"].map(lambda x: f"{x:.2%}")
-                                render_table(alt_view)
-
                 render_section_title("Verdant Match Recommendations")
                 if not candidates.empty:
                     rec_uni = candidates.dropna(subset=["E", "S", "G", "Expected_Return"]).copy()
@@ -1152,6 +1120,14 @@ color:#a8b8d8;margin-bottom:0.3rem;">
 else:
     with tab1:
         st.info("Set your inputs in the sidebar, then click 'Run portfolio optimisation'.")
+
+
+
+
+
+
+
+
 
 
 
