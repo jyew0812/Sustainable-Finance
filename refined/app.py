@@ -725,10 +725,19 @@ if st.session_state.get("run_optimisation", False):
                 esg_scores_weighted["G"],
                 w_e, w_s, w_g,
             )
-            universe_returns = fetch_universe_returns(esg_scores_df["ticker"].tolist(), period)
-            candidates = esg_scores_weighted.merge(universe_returns, on="ticker", how="inner")
-            candidates = candidates.dropna(subset=["Expected_Return", "ESG"])
-            candidates = candidates[~candidates["ticker"].isin(tickers)]
+            alternatives_warning = None
+            try:
+                universe_returns = fetch_universe_returns(esg_scores_df["ticker"].tolist(), period)
+                candidates = esg_scores_weighted.merge(universe_returns, on="ticker", how="inner")
+                candidates = candidates.dropna(subset=["Expected_Return", "ESG"])
+                candidates = candidates[~candidates["ticker"].isin(tickers)]
+            except Exception:
+                universe_returns = pd.DataFrame(columns=["ticker", "Expected_Return", "Volatility"])
+                candidates = pd.DataFrame(columns=list(esg_scores_weighted.columns) + ["Expected_Return", "Volatility"])
+                alternatives_warning = (
+                    "Yahoo Finance did not return the broader universe data on this run. "
+                    "Your main portfolio was still computed from the selected tickers."
+                )
 
             dim_weights = {"E": w_e, "S": w_s, "G": w_g}
             primary_dim = max(dim_weights, key=dim_weights.get)
@@ -1308,6 +1317,8 @@ if st.session_state.get("run_optimisation", False):
                     risk_free_rate=risk_free_rate,
                     profiles=asset_profiles,
                 )
+                if alternatives_warning:
+                    st.info(alternatives_warning)
 
                 render_section_title("Portfolio-Profile Compatibility Score")
                 render_sage("Compatibility shows which of your stocks best matches your ESG preference profile — not just overall ESG score, but how well each pillar aligns with what you said matters most to you.")

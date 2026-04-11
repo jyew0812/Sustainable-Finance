@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
 from matplotlib.ticker import FuncFormatter
 import yfinance as yf
-import requests
 import logging
 import streamlit as st
 from pathlib import Path
@@ -42,13 +41,6 @@ TICKER_ALIASES = {
 logging.getLogger('yfinance').setLevel(logging.CRITICAL)
 logging.getLogger('yfinance').propagate = False
 
-
-def _yf_session():
-    """Use a clean session so broken system proxy settings do not block Yahoo requests."""
-    session = requests.Session()
-    session.trust_env = False
-    session.headers.update({"User-Agent": "Mozilla/5.0"})
-    return session
 
 def classify_risk(gamma):
     if gamma >= 6.5:
@@ -259,38 +251,49 @@ def load_esg_data_from_uploaded(uploaded_file):
 def fetch_ticker_profile(ticker):
     if not ticker:
         return None
-    ticker_obj = yf.Ticker(ticker, session=_yf_session())
-    info = {}
-    try:
-        info = ticker_obj.get_info() or {}
-    except Exception:
-        info = {}
-    if not info:
+    candidates = _download_candidates(ticker)
+    best_profile = None
+    for candidate in candidates:
         try:
-            info = ticker_obj.info or {}
+            ticker_obj = yf.Ticker(candidate)
+        except Exception:
+            continue
+        info = {}
+        try:
+            info = ticker_obj.get_info() or {}
         except Exception:
             info = {}
-    sector = info.get('sector') or info.get('sectorDisp') or info.get('sectorKey') or 'Unavailable'
-    industry = info.get('industry') or info.get('industryDisp') or info.get('industryKey') or 'Unavailable'
-    short_name = info.get('shortName') or info.get('longName') or info.get('displayName') or ticker
-    if sector == 'Unavailable' or industry == 'Unavailable':
-        try:
-            search = yf.Search(ticker, max_results=1, session=_yf_session(), proxy="")
-            quotes = getattr(search, 'quotes', []) or []
-        except Exception:
-            quotes = []
-        if quotes:
-            quote = quotes[0]
-            short_name = quote.get('shortname') or quote.get('longname') or quote.get('dispSecIndFlag') or short_name
-            sector = quote.get('sector') or quote.get('sectorDisp') or quote.get('sectorKey') or sector
-            industry = quote.get('industry') or quote.get('industryDisp') or quote.get('industryKey') or industry
-    if sector == 'Unavailable' or industry == 'Unavailable':
-        try:
-            quote_type = ticker_obj.get_history_metadata() or {}
-        except Exception:
-            quote_type = {}
-        short_name = quote_type.get('shortName') or short_name
-    return {'name': short_name, 'sector': sector, 'industry': industry}
+        if not info:
+            try:
+                info = ticker_obj.info or {}
+            except Exception:
+                info = {}
+        sector = info.get('sector') or info.get('sectorDisp') or info.get('sectorKey') or 'Unavailable'
+        industry = info.get('industry') or info.get('industryDisp') or info.get('industryKey') or 'Unavailable'
+        short_name = info.get('shortName') or info.get('longName') or info.get('displayName') or candidate
+        if sector == 'Unavailable' or industry == 'Unavailable':
+            try:
+                search = yf.Search(candidate, max_results=1)
+                quotes = getattr(search, 'quotes', []) or []
+            except Exception:
+                quotes = []
+            if quotes:
+                quote = quotes[0]
+                short_name = quote.get('shortname') or quote.get('longname') or quote.get('dispSecIndFlag') or short_name
+                sector = quote.get('sector') or quote.get('sectorDisp') or quote.get('sectorKey') or sector
+                industry = quote.get('industry') or quote.get('industryDisp') or quote.get('industryKey') or industry
+        if sector == 'Unavailable' or industry == 'Unavailable':
+            try:
+                quote_type = ticker_obj.get_history_metadata() or {}
+            except Exception:
+                quote_type = {}
+            short_name = quote_type.get('shortName') or short_name
+        profile = {'name': short_name, 'sector': sector, 'industry': industry}
+        if sector != 'Unavailable' or industry != 'Unavailable':
+            return profile
+        if best_profile is None:
+            best_profile = profile
+    return best_profile or {'name': ticker, 'sector': 'Unavailable', 'industry': 'Unavailable'}
 
 @st.cache_data(show_spinner=False)
 def fetch_market_data(tickers, ticker2=None, period='3y'):
@@ -313,8 +316,6 @@ def fetch_market_data(tickers, ticker2=None, period='3y'):
                     auto_adjust=True,
                     progress=False,
                     threads=False,
-                    session=_yf_session(),
-                    proxy="",
                 )
             except Exception:
                 continue
@@ -338,7 +339,8 @@ def fetch_market_data(tickers, ticker2=None, period='3y'):
         tried = ", ".join(candidates) if candidates else raw_ticker
         raise ValueError(
             f'No recent Yahoo price data for ticker "{raw_ticker}" (tried: {tried}). '
-            'The symbol may be delisted/renamed, or not available on Yahoo Finance.'
+            'The ticker may be valid, but Yahoo Finance returned no recent history for this request. '
+            'This is often caused by temporary Yahoo throttling or unavailable cloud responses.'
         )
 
     price_series = [_download_close_series(ticker).rename(ticker) for ticker in clean_tickers]
@@ -374,7 +376,7 @@ def fetch_market_data(tickers, ticker2=None, period='3y'):
 def fetch_universe_returns(tickers, period):
     clean_tickers = [_normalise_ticker(t) for t in tickers if isinstance(t, str) and t]
     clean_tickers = [t for t in clean_tickers if t and (len(t) <= 8)]
-    clean_tickers = list(dict.fromkeys(clean_tickers))[:600]
+    clean_tickers = list(dict.fromkeys(clean_tickers))[:150]
     if not clean_tickers:
         return pd.DataFrame(columns=['ticker', 'Expected_Return', 'Volatility'])
 
@@ -388,7 +390,7 @@ def fetch_universe_returns(tickers, period):
 
     mapped_download_list = list(dict.fromkeys(source_to_mapped.values()))
     all_rows = []
-    chunk_size = 120
+    chunk_size = 40
     for i in range(0, len(mapped_download_list), chunk_size):
         chunk = mapped_download_list[i:i + chunk_size]
         try:
@@ -398,8 +400,6 @@ def fetch_universe_returns(tickers, period):
                 auto_adjust=True,
                 progress=False,
                 threads=False,
-                session=_yf_session(),
-                proxy="",
             )
             if data.empty:
                 continue
