@@ -1,6 +1,7 @@
 streamlit
-numpy
 pandas
+numpy
 matplotlib
 yfinance
+pillow
 openpyxl
