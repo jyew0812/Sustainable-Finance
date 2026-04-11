@@ -165,6 +165,7 @@ def render_landing_page():
         color: #1a5c2a;
         letter-spacing: -0.05em;
         line-height: 1.0;
+        white-space: nowrap;
         margin: 0 0 0.5rem 0;
         animation: fadeSlideUp 0.65s ease both 0.2s;
         opacity: 0;
@@ -895,16 +896,22 @@ def render_complete_portfolio_comparison(tangency, complete_portfolio, tickers):
         return f"{(complete - base):+.{digits}f}"
 
     def weight_bar(value, tone):
-        fill = max(0, min(100, value * 100))
-        if tone == 'tan':
+        fill = max(0, min(100, abs(value) * 100))
+        if value < 0:
+            fill_color = '#9a5b63'
+            bg_color = '#ead9dd'
+            border_color = '#d9c2c7'
+        elif tone == 'tan':
             fill_color = '#7f9bc2'
             bg_color = '#d9e3f1'
+            border_color = '#cfdae6'
         else:
             fill_color = '#6b847a'
             bg_color = '#d8e3de'
+            border_color = '#cfdae6'
         return (
             f'<div style="display:flex;align-items:center;gap:0.5rem;">'
-            f'<div style="width:84px;height:12px;border-radius:8px;background:{bg_color};overflow:hidden;border:1px solid #cfdae6;">'
+            f'<div style="width:84px;height:12px;border-radius:8px;background:{bg_color};overflow:hidden;border:1px solid {border_color};">'
             f'<div style="width:{fill:.2f}%;height:100%;background:{fill_color};"></div>'
             f'</div>'
             f'<span>{pct(value)}</span>'
@@ -925,6 +932,7 @@ def render_complete_portfolio_comparison(tangency, complete_portfolio, tickers):
             'tan': weight_bar(tan_weight, 'tan'),
             'comp': weight_bar(comp_weight, 'comp'),
             'diff': pct_diff(comp_weight, tan_weight),
+            'diff_negative': (comp_weight - tan_weight) < 0,
         })
     rows.extend([
         {
@@ -932,36 +940,42 @@ def render_complete_portfolio_comparison(tangency, complete_portfolio, tickers):
             'tan': weight_bar(0.0, 'tan'),
             'comp': weight_bar(complete_portfolio['weight_risk_free'], 'comp'),
             'diff': pct_diff(complete_portfolio['weight_risk_free'], 0.0),
+            'diff_negative': complete_portfolio['weight_risk_free'] < 0,
         },
         {
             'metric': 'Expected return',
             'tan': pct(tangency['Expected_Return']),
             'comp': pct(complete_portfolio['Expected_Return']),
             'diff': f'{abs(ret_delta) * 100:.2f}% lower' if ret_delta < 0 else f'{ret_delta * 100:.2f}% higher',
+            'diff_negative': ret_delta < 0,
         },
         {
             'metric': 'Volatility',
             'tan': pct(tangency['Risk_SD']),
             'comp': pct(complete_portfolio['Risk_SD']),
             'diff': f'{abs(vol_delta) * 100:.2f}% lower risk' if vol_delta < 0 else f'{vol_delta * 100:.2f}% higher risk',
+            'diff_negative': False,
         },
         {
             'metric': 'Variance',
             'tan': f"{tangency['Variance']:.4f}",
             'comp': f"{complete_portfolio['Variance']:.4f}",
             'diff': num_diff(complete_portfolio['Variance'], tangency['Variance']),
+            'diff_negative': (complete_portfolio['Variance'] - tangency['Variance']) < 0,
         },
         {
             'metric': 'Sharpe ratio',
             'tan': f"{tangency['Sharpe_Ratio']:.3f}",
             'comp': f"{tangency['Sharpe_Ratio']:.3f}",
             'diff': 'Same Sharpe',
+            'diff_negative': False,
         },
         {
             'metric': 'Utility',
             'tan': 'N/A',
             'comp': f"{util_val:.4f}",
             'diff': f"{util_val:.4f} higher utility",
+            'diff_negative': False,
         },
     ])
 
@@ -972,7 +986,7 @@ def render_complete_portfolio_comparison(tangency, complete_portfolio, tickers):
           <td style="padding:0.56rem 0.78rem;color:#243b57;font-size:0.95rem;line-height:1.3;white-space:nowrap;">{r['tan']}</td>
           <td style="padding:0.56rem 0.78rem;color:#2f5a48;font-size:0.95rem;line-height:1.3;white-space:nowrap;">{r['comp']}</td>
           <td style="padding:0.56rem 0.78rem;color:#1f2933;font-size:0.92rem;line-height:1.25;white-space:nowrap;">
-            <span style="display:inline-block;padding:0.22rem 0.65rem;border-radius:999px;background:#edf3ef;border:1px solid #d3e0d9;color:#2f5a48;font-weight:600;">
+            <span style="display:inline-block;padding:0.22rem 0.65rem;border-radius:999px;background:{'#f4e5e8' if r.get('diff_negative') else '#edf3ef'};border:1px solid {'#dfc6cc' if r.get('diff_negative') else '#d3e0d9'};color:{'#8a4f58' if r.get('diff_negative') else '#2f5a48'};font-weight:600;">
               {r['diff']}
             </span>
           </td>

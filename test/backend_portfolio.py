@@ -273,7 +273,7 @@ def fetch_ticker_profile(ticker):
         short_name = info.get('shortName') or info.get('longName') or info.get('displayName') or candidate
         if sector == 'Unavailable' or industry == 'Unavailable':
             try:
-                search = yf.Search(candidate, max_results=1, proxy="")
+                search = yf.Search(candidate, max_results=1)
                 quotes = getattr(search, 'quotes', []) or []
             except Exception:
                 quotes = []
@@ -316,7 +316,6 @@ def fetch_market_data(tickers, ticker2=None, period='3y'):
                     auto_adjust=True,
                     progress=False,
                     threads=False,
-                    proxy="",
                 )
             except Exception:
                 continue
@@ -340,7 +339,8 @@ def fetch_market_data(tickers, ticker2=None, period='3y'):
         tried = ", ".join(candidates) if candidates else raw_ticker
         raise ValueError(
             f'No recent Yahoo price data for ticker "{raw_ticker}" (tried: {tried}). '
-            'The symbol may be delisted/renamed, or not available on Yahoo Finance.'
+            'The ticker may be valid, but Yahoo Finance returned no recent history for this request. '
+            'This is often caused by temporary Yahoo throttling or unavailable cloud responses.'
         )
 
     price_series = [_download_close_series(ticker).rename(ticker) for ticker in clean_tickers]
@@ -376,7 +376,7 @@ def fetch_market_data(tickers, ticker2=None, period='3y'):
 def fetch_universe_returns(tickers, period):
     clean_tickers = [_normalise_ticker(t) for t in tickers if isinstance(t, str) and t]
     clean_tickers = [t for t in clean_tickers if t and (len(t) <= 8)]
-    clean_tickers = list(dict.fromkeys(clean_tickers))[:600]
+    clean_tickers = list(dict.fromkeys(clean_tickers))[:150]
     if not clean_tickers:
         return pd.DataFrame(columns=['ticker', 'Expected_Return', 'Volatility'])
 
@@ -390,7 +390,7 @@ def fetch_universe_returns(tickers, period):
 
     mapped_download_list = list(dict.fromkeys(source_to_mapped.values()))
     all_rows = []
-    chunk_size = 120
+    chunk_size = 40
     for i in range(0, len(mapped_download_list), chunk_size):
         chunk = mapped_download_list[i:i + chunk_size]
         try:
@@ -400,7 +400,6 @@ def fetch_universe_returns(tickers, period):
                 auto_adjust=True,
                 progress=False,
                 threads=False,
-                proxy="",
             )
             if data.empty:
                 continue
