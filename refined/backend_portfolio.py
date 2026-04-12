@@ -492,7 +492,8 @@ def portfolio_variance(weights, covariance_or_sd1, sd2=None, corr=None):
 def portfolio_esg(weights, esg_scores, esg2=None):
     w = _coerce_weight_vector(weights)
     scores = _coerce_vector(esg_scores, esg2)
-    return float(np.dot(w, scores))
+    total = float(np.sum(w))
+    return float(np.dot(w, scores) / total) if abs(total) > 1e-12 else 0.0
 
 def esg_utility_function(port_return_value, port_variance, port_esg_score, gamma, lambda_esg):
     return port_return_value - 0.5 * gamma * port_variance + lambda_esg * port_esg_score
@@ -632,33 +633,83 @@ def select_max_sharpe_portfolio(df):
     tickers = [col.replace('Weight_', '') for col in df.columns if col.startswith('Weight_') and not col.startswith('Weight_Asset')]
     return _portfolio_payload_from_row(row, tickers, use_complete=False)
 
-def build_complete_portfolio(tangency_portfolio, rf, gamma):
-    tangency_excess_return = tangency_portfolio['Expected_Return'] - rf
-    tangency_variance = tangency_portfolio['Variance']
-    if tangency_variance <= 0:
-        raise ValueError('Tangency portfolio variance must be positive to compute the complete portfolio.')
-    y = tangency_excess_return / (gamma * tangency_variance)
-    expected_complete_return = rf + y * tangency_excess_return
-    complete_variance = y ** 2 * tangency_variance
-    complete_risk = np.sqrt(complete_variance)
-    utility = utility_function(expected_complete_return, complete_variance, gamma)
-    weights = tangency_portfolio.get('Weights', {})
-    scaled_weights = {ticker: float(y * weight) for ticker, weight in weights.items()}
+def build_tangency_portfolio(expected_returns, covariance_matrix, rf, tickers=None, esg_scores=None):
+    mu = _coerce_vector(expected_returns)
+    cov = np.asarray(covariance_matrix, dtype=float)
+    tickers = list(tickers or [f'Asset{i + 1}' for i in range(len(mu))])
+    excess = mu - float(rf)
+    z = np.linalg.pinv(cov) @ excess
+    denom = float(np.sum(z))
+    if abs(denom) <= 1e-12:
+        raise ValueError('Tangency portfolio is undefined because the excess-return weights sum to zero.')
+    risky_weights = z / denom
+    expected_return = float(np.dot(risky_weights, mu))
+    variance = float(risky_weights @ cov @ risky_weights)
+    risk = float(np.sqrt(max(variance, 0.0)))
+    sharpe = (expected_return - rf) / risk if risk > 0 else np.nan
+    esg_score = float(portfolio_esg(risky_weights, esg_scores)) if esg_scores is not None else np.nan
     payload = {
-        'y': y,
-        'weight_risk_free': 1 - y,
+        'Weights': {ticker: float(weight) for ticker, weight in zip(tickers, risky_weights)},
+        'Expected_Return': expected_return,
+        'Variance': variance,
+        'Risk_SD': risk,
+        'Sharpe_Ratio': float(sharpe),
+        'ESG_Score': esg_score,
+        'Utility': np.nan,
+        'y': 1.0,
+        'weight_risk_free': 0.0,
+        'Risky_Weights': {ticker: float(weight) for ticker, weight in zip(tickers, risky_weights)},
+        'Risky_Expected_Return': expected_return,
+        'Risky_Variance': variance,
+        'Risky_Risk_SD': risk,
+        'Risky_ESG_Score': esg_score,
+        'Risky_Sharpe_Ratio': float(sharpe),
+    }
+    for idx, (ticker, weight) in enumerate(zip(tickers, risky_weights), start=1):
+        payload[f'Weight_Asset{idx}'] = float(weight)
+        payload[f'Weight_{ticker}'] = float(weight)
+        payload[f'Risky_Weight_Asset{idx}'] = float(weight)
+        payload[f'Risky_Weight_{ticker}'] = float(weight)
+    return payload
+
+def build_complete_portfolio(tangency_portfolio, rf, gamma, expected_returns=None, covariance_matrix=None, tickers=None, esg_scores=None):
+    gamma = float(gamma)
+    if gamma <= 0:
+        raise ValueError('Gamma must be positive to compute the complete tangency portfolio.')
+    if expected_returns is None or covariance_matrix is None:
+        raise ValueError('Expected returns and covariance matrix are required to compute the complete tangency portfolio.')
+    mu = _coerce_vector(expected_returns)
+    cov = np.asarray(covariance_matrix, dtype=float)
+    tickers = list(tickers or tangency_portfolio.get('Weights', {}).keys() or [f'Asset{i + 1}' for i in range(len(mu))])
+    excess = mu - float(rf)
+    risky_holdings = (np.linalg.pinv(cov) @ excess) / gamma
+    scaled_weights = {ticker: float(weight) for ticker, weight in zip(tickers, risky_holdings)}
+    risky_total = float(np.sum(risky_holdings))
+    expected_complete_return = float(rf + np.dot(risky_holdings, excess))
+    complete_variance = float(risky_holdings @ cov @ risky_holdings)
+    complete_risk = float(np.sqrt(max(complete_variance, 0.0)))
+    utility = utility_function(expected_complete_return, complete_variance, gamma)
+    esg_score = float(portfolio_esg(risky_holdings, esg_scores)) if esg_scores is not None else float(tangency_portfolio.get('ESG_Score', np.nan))
+    payload = {
+        'y': risky_total,
+        'weight_risk_free': float(1.0 - risky_total),
         'Expected_Return': expected_complete_return,
         'Variance': complete_variance,
         'Risk_SD': complete_risk,
         'Utility': utility,
         'Weights': scaled_weights,
-        'ESG_Score': tangency_portfolio['ESG_Score'],
+        'ESG_Score': esg_score,
         'Sharpe_Ratio': tangency_portfolio['Sharpe_Ratio'],
+        'Risky_Weights': {ticker: float(weight) for ticker, weight in tangency_portfolio.get('Weights', {}).items()},
+        'Risky_Expected_Return': tangency_portfolio['Expected_Return'],
+        'Risky_Variance': tangency_portfolio['Variance'],
+        'Risky_Risk_SD': tangency_portfolio['Risk_SD'],
+        'Risky_ESG_Score': tangency_portfolio['ESG_Score'],
+        'Risky_Sharpe_Ratio': tangency_portfolio['Sharpe_Ratio'],
     }
-    for idx, (_, weight) in enumerate(scaled_weights.items(), start=1):
-        payload[f'Weight_Asset{idx}'] = weight
-    for ticker, weight in scaled_weights.items():
-        payload[f'Weight_{ticker}'] = weight
+    for idx, (ticker, weight) in enumerate(scaled_weights.items(), start=1):
+        payload[f'Weight_Asset{idx}'] = float(weight)
+        payload[f'Weight_{ticker}'] = float(weight)
     return payload
 
 def compute_portfolio_compatibility(gamma, lambda_raw_avg, w_e, w_s, w_g, recommended, esg_data_list=None, weights=None, esg1_data=None, esg2_data=None, w1=None, w2=None):
