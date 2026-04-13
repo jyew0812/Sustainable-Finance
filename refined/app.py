@@ -1155,6 +1155,12 @@ if st.session_state.get("run_optimisation", False):
                                     )
                                     st.progress(_val / 100)
 
+                esg_fig_col1, esg_fig_col2 = st.columns(2)
+                with esg_fig_col1:
+                    st.pyplot(fig3, width="stretch")
+                with esg_fig_col2:
+                    st.pyplot(fig4, width="stretch")
+
                 render_section_title("ESG Comparison")
                 esg_compare_left, esg_compare_right = st.columns(2)
 
