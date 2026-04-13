@@ -12,7 +12,7 @@ from backend_portfolio import (
     fetch_ticker_profile, fetch_market_data, fetch_universe_returns,
     portfolio_return, portfolio_variance,
     portfolio_esg, esg_utility_function, build_portfolio_table,
-    select_recommended_portfolio, select_max_sharpe_portfolio,
+    select_recommended_portfolio, select_max_sharpe_portfolio, build_tangency_portfolio,
     build_complete_portfolio, classify_risk, classify_esg,
     make_frontier_figure, make_cml_figure, make_esg_tradeoff_figure,
     make_esg_efficient_frontier_figure, make_price_history_figure,
@@ -713,8 +713,22 @@ if st.session_state.get("run_optimisation", False):
             )
 
             recommended = select_recommended_portfolio(df)
-            tangency = select_max_sharpe_portfolio(df)
-            complete_portfolio = build_complete_portfolio(tangency, risk_free_rate, gamma)
+            tangency = build_tangency_portfolio(
+                expected_returns=mean_returns.values,
+                covariance_matrix=covariance.values,
+                rf=risk_free_rate,
+                tickers=tickers,
+                esg_scores=esg_scores.values,
+            )
+            complete_portfolio = build_complete_portfolio(
+                tangency,
+                risk_free_rate,
+                gamma,
+                expected_returns=mean_returns.values,
+                covariance_matrix=covariance.values,
+                tickers=tickers,
+                esg_scores=esg_scores.values,
+            )
             recommended_weights = np.array([float(recommended.get('Risky_Weights', {}).get(ticker, 0.0)) for ticker in tickers], dtype=float)
             tangency_weights = get_weight_vector(tangency, tickers)
 
@@ -958,14 +972,14 @@ if st.session_state.get("run_optimisation", False):
                     lambda x: _weight_bar_cell(x, "rec") if "Risk-free" not in str(x) else x
                 )
                 rec_table_html = style_table(recommended_weights_view).to_html(escape=False)
-                complete_weights_df = _build_weight_table(complete_portfolio, "Complete Portfolio Weight", "Amount")
+                complete_weights_df = _build_weight_table(complete_portfolio, "Complete Tangency Weight", "Amount")
                 complete_weights_df = pd.concat([complete_weights_df, pd.DataFrame([{
                     "Asset": "Risk-free asset",
-                    "Complete Portfolio Weight": f"{complete_portfolio['weight_risk_free'] * 100:.2f}%",
+                    "Complete Tangency Weight": f"{complete_portfolio['weight_risk_free'] * 100:.2f}%",
                     "Amount": f"{investment_amount * complete_portfolio['weight_risk_free']:,.2f}",
                 }])], ignore_index=True)
                 complete_weights_view = complete_weights_df.copy()
-                complete_weights_view["Complete Portfolio Weight"] = complete_weights_view["Complete Portfolio Weight"].map(
+                complete_weights_view["Complete Tangency Weight"] = complete_weights_view["Complete Tangency Weight"].map(
                     lambda x: _weight_bar_cell(x, "rec") if "Risk-free" not in str(x) else x
                 )
                 comp_table_html = style_table(complete_weights_view).to_html(escape=False)
@@ -990,14 +1004,14 @@ if st.session_state.get("run_optimisation", False):
                         unsafe_allow_html=True,
                     )
                 with rec_complete_right:
-                    render_section_title("Complete Portfolio")
+                    render_section_title("Complete Tangency Portfolio")
                     st.markdown(
                         f"""
                         <div style="width:100%;background:#ffffff;border:1px solid #d7dee5;border-radius:16px;padding:0.6rem;box-shadow:0 8px 18px rgba(15,23,42,0.06);">
                           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0.45rem;align-items:start;width:100%;">
                             <div style="min-width:0;overflow-x:auto;">{comp_table_html}</div>
                             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.5rem;">
-                              {_small_stat_card("Tangency weight (y)", f"{complete_portfolio['y']:.3f}")}
+                              {_small_stat_card("Total risky weight (y)", f"{complete_portfolio['y']:.3f}")}
                               {_small_stat_card("Risk-free weight", f"{complete_portfolio['weight_risk_free']:.3f}")}
                               {_small_stat_card("Expected return", f"{complete_portfolio['Expected_Return']*100:.2f}%")}
                               {_small_stat_card("Volatility", f"{complete_portfolio['Risk_SD']*100:.2f}%")}
@@ -1010,25 +1024,13 @@ if st.session_state.get("run_optimisation", False):
                     )
                     st.caption(
                         "Recommended ESG objective: x'(mu - rf*1) - 0.5*gamma*x'Sigma x + lambda*s_bar, "
-                        "with s_bar = (x's)/(x'1). Complete portfolio formulas: Expected Return = rf + x'(mu-rf*1), "
+                        "with s_bar = (x's)/(x'1). Complete tangency formulas: Expected Return = rf + x'(mu-rf*1), "
                         "Variance = x'Sigma x."
                     )
 
-                render_section_title("Risky Portfolio Comparison")
-                risky_compare_rows = [{"Metric": f"Weight in {ticker}", "Recommended ESG Portfolio": f"{recommended_weights[idx] * 100:.2f}%", "Tangency Portfolio": f"{tangency_weights[idx] * 100:.2f}%"} for idx, ticker in enumerate(tickers)]
-                risky_compare_rows.extend([
-                    {"Metric": "ESG score", "Recommended ESG Portfolio": f"{recommended['Risky_ESG_Score']:.2f}", "Tangency Portfolio": f"{tangency['ESG_Score']:.2f}"},
-                    {"Metric": "ESG objective", "Recommended ESG Portfolio": f"{recommended['Utility']:.4f}", "Tangency Portfolio": "N/A"},
-                    {"Metric": "Sharpe ratio", "Recommended ESG Portfolio": f"{recommended['Risky_Sharpe_Ratio']:.3f}", "Tangency Portfolio": f"{tangency['Sharpe_Ratio']:.3f}"},
-                    {"Metric": "Expected return", "Recommended ESG Portfolio": f"{recommended['Risky_Expected_Return']*100:.2f}%", "Tangency Portfolio": f"{tangency['Expected_Return']*100:.2f}%"},
-                    {"Metric": "Volatility", "Recommended ESG Portfolio": f"{recommended['Risky_Risk_SD']*100:.2f}%", "Tangency Portfolio": f"{tangency['Risk_SD']*100:.2f}%"},
-                ])
-                risky_compare_df = pd.DataFrame(risky_compare_rows)
-                render_table(risky_compare_df)
-
-                render_section_title("Complete Portfolio Comparison")
+                render_section_title("Complete Tangency Portfolio Comparison")
                 if hasattr(ui, "render_complete_portfolio_comparison"):
-                    ui.render_complete_portfolio_comparison(tangency, complete_portfolio, tickers)
+                    ui.render_complete_portfolio_comparison(recommended, complete_portfolio, tickers)
 
                 render_section_title("What-if Weight Simulator")
                 st.caption(

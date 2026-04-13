@@ -885,7 +885,7 @@ def render_table(df):
 
     st.markdown(style_table(view).to_html(escape=False), unsafe_allow_html=True)
 
-def render_complete_portfolio_comparison(tangency, complete_portfolio, tickers):
+def render_complete_portfolio_comparison(recommended, complete_portfolio, tickers):
     def pct(v):
         return f"{v * 100:.2f}%"
 
@@ -918,64 +918,64 @@ def render_complete_portfolio_comparison(tangency, complete_portfolio, tickers):
             f'</div>'
         )
 
-    ret_delta = complete_portfolio['Expected_Return'] - tangency['Expected_Return']
-    vol_delta = complete_portfolio['Risk_SD'] - tangency['Risk_SD']
+    ret_delta = complete_portfolio['Expected_Return'] - recommended['Expected_Return']
+    vol_delta = complete_portfolio['Risk_SD'] - recommended['Risk_SD']
     util_val = complete_portfolio['Utility']
-    tan_weights = tangency.get('Weights', {})
+    rec_weights = recommended.get('Weights', {})
     comp_weights = complete_portfolio.get('Weights', {})
     rows = []
     for ticker in tickers:
-        tan_weight = float(tan_weights.get(ticker, 0.0))
+        rec_weight = float(rec_weights.get(ticker, 0.0))
         comp_weight = float(comp_weights.get(ticker, 0.0))
         rows.append({
             'metric': f'Weight in {ticker}',
-            'tan': weight_bar(tan_weight, 'tan'),
+            'rec': weight_bar(rec_weight, 'tan'),
             'comp': weight_bar(comp_weight, 'comp'),
-            'diff': pct_diff(comp_weight, tan_weight),
-            'diff_negative': (comp_weight - tan_weight) < 0,
+            'diff': pct_diff(comp_weight, rec_weight),
+            'diff_negative': (comp_weight - rec_weight) < 0,
         })
     rows.extend([
         {
             'metric': 'Weight in risk-free asset',
-            'tan': weight_bar(0.0, 'tan'),
+            'rec': weight_bar(recommended['weight_risk_free'], 'tan'),
             'comp': weight_bar(complete_portfolio['weight_risk_free'], 'comp'),
-            'diff': pct_diff(complete_portfolio['weight_risk_free'], 0.0),
-            'diff_negative': complete_portfolio['weight_risk_free'] < 0,
+            'diff': pct_diff(complete_portfolio['weight_risk_free'], recommended['weight_risk_free']),
+            'diff_negative': (complete_portfolio['weight_risk_free'] - recommended['weight_risk_free']) < 0,
         },
         {
             'metric': 'Expected return',
-            'tan': pct(tangency['Expected_Return']),
+            'rec': pct(recommended['Expected_Return']),
             'comp': pct(complete_portfolio['Expected_Return']),
             'diff': f'{abs(ret_delta) * 100:.2f}% lower' if ret_delta < 0 else f'{ret_delta * 100:.2f}% higher',
             'diff_negative': ret_delta < 0,
         },
         {
             'metric': 'Volatility',
-            'tan': pct(tangency['Risk_SD']),
+            'rec': pct(recommended['Risk_SD']),
             'comp': pct(complete_portfolio['Risk_SD']),
             'diff': f'{abs(vol_delta) * 100:.2f}% lower risk' if vol_delta < 0 else f'{vol_delta * 100:.2f}% higher risk',
             'diff_negative': False,
         },
         {
             'metric': 'Variance',
-            'tan': f"{tangency['Variance']:.4f}",
+            'rec': f"{recommended['Variance']:.4f}",
             'comp': f"{complete_portfolio['Variance']:.4f}",
-            'diff': num_diff(complete_portfolio['Variance'], tangency['Variance']),
-            'diff_negative': (complete_portfolio['Variance'] - tangency['Variance']) < 0,
+            'diff': num_diff(complete_portfolio['Variance'], recommended['Variance']),
+            'diff_negative': (complete_portfolio['Variance'] - recommended['Variance']) < 0,
         },
         {
             'metric': 'Sharpe ratio',
-            'tan': f"{tangency['Sharpe_Ratio']:.3f}",
-            'comp': f"{tangency['Sharpe_Ratio']:.3f}",
-            'diff': 'Same Sharpe',
-            'diff_negative': False,
+            'rec': f"{recommended['Sharpe_Ratio']:.3f}",
+            'comp': f"{complete_portfolio['Sharpe_Ratio']:.3f}",
+            'diff': num_diff(complete_portfolio['Sharpe_Ratio'], recommended['Sharpe_Ratio'], digits=3),
+            'diff_negative': (complete_portfolio['Sharpe_Ratio'] - recommended['Sharpe_Ratio']) < 0,
         },
         {
             'metric': 'Utility',
-            'tan': 'N/A',
+            'rec': f"{recommended['Utility']:.4f}",
             'comp': f"{util_val:.4f}",
-            'diff': f"{util_val:.4f} higher utility",
-            'diff_negative': False,
+            'diff': num_diff(util_val, recommended['Utility']),
+            'diff_negative': util_val < recommended['Utility'],
         },
     ])
 
@@ -983,7 +983,7 @@ def render_complete_portfolio_comparison(tangency, complete_portfolio, tickers):
         f"""
         <tr>
           <td style="padding:0.56rem 0.78rem;font-weight:600;color:#1f2933;font-size:0.96rem;line-height:1.3;white-space:nowrap;">{r['metric']}</td>
-          <td style="padding:0.56rem 0.78rem;color:#243b57;font-size:0.95rem;line-height:1.3;white-space:nowrap;">{r['tan']}</td>
+          <td style="padding:0.56rem 0.78rem;color:#243b57;font-size:0.95rem;line-height:1.3;white-space:nowrap;">{r['rec']}</td>
           <td style="padding:0.56rem 0.78rem;color:#2f5a48;font-size:0.95rem;line-height:1.3;white-space:nowrap;">{r['comp']}</td>
           <td style="padding:0.56rem 0.78rem;color:#1f2933;font-size:0.92rem;line-height:1.25;white-space:nowrap;">
             <span style="display:inline-block;padding:0.22rem 0.65rem;border-radius:999px;background:{'#f4e5e8' if r.get('diff_negative') else '#edf3ef'};border:1px solid {'#dfc6cc' if r.get('diff_negative') else '#d3e0d9'};color:{'#8a4f58' if r.get('diff_negative') else '#2f5a48'};font-weight:600;">
@@ -1003,8 +1003,8 @@ def render_complete_portfolio_comparison(tangency, complete_portfolio, tickers):
             <thead>
               <tr>
                 <th style="text-align:left;padding:0.62rem 0.78rem;color:#1f2f46;border-bottom:1px solid #e7edf3;font-size:0.95rem;white-space:nowrap;">Metric</th>
-                <th style="text-align:left;padding:0.62rem 0.78rem;color:#1f2f46;border-bottom:1px solid #e7edf3;font-size:0.95rem;white-space:nowrap;">Tangency Portfolio</th>
-                <th style="text-align:left;padding:0.62rem 0.78rem;color:#1f2f46;border-bottom:1px solid #e7edf3;font-size:0.95rem;white-space:nowrap;">Complete Portfolio</th>
+                <th style="text-align:left;padding:0.62rem 0.78rem;color:#1f2f46;border-bottom:1px solid #e7edf3;font-size:0.95rem;white-space:nowrap;">Recommended ESG Portfolio</th>
+                <th style="text-align:left;padding:0.62rem 0.78rem;color:#1f2f46;border-bottom:1px solid #e7edf3;font-size:0.95rem;white-space:nowrap;">Complete Tangency Portfolio</th>
                 <th style="text-align:left;padding:0.62rem 0.78rem;color:#6b7280;border-bottom:1px solid #e7edf3;font-size:0.95rem;white-space:nowrap;">Difference</th>
               </tr>
             </thead>
