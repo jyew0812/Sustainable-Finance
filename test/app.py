@@ -1,4 +1,4 @@
-import numpy as np
+﻿import numpy as np
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
@@ -1106,13 +1106,27 @@ if st.session_state.get("run_optimisation", False):
             with tab3:
                 render_section_title("ESG Pillar Breakdown")
                 render_sage("ESG scores break down into Environmental, Social, and Governance pillars. A high Governance score often predicts lower long-run risk — boards that manage ESG well tend to manage business risk well too.")
-
                 def _pillar_color(v):
                     if v >= 70:
                         return "#34c759"
                     elif v >= 45:
                         return "#f59e0b"
                     return "#ef4444"
+
+                def _light(v, size=10, margin=8):
+                    color = _pillar_color(v)
+                    return f'<span style="display:inline-block;width:{size}px;height:{size}px;border-radius:50%;background:{color};margin-right:{margin}px;vertical-align:middle;"></span>'
+
+                st.markdown(
+                    """<div style="font-size:0.78rem;color:#7b90b8;margin:-0.15rem 0 1rem 0;">
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34c759;"></span> &gt;= 70
+                    &nbsp;&nbsp;
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span> 45-70
+                    &nbsp;&nbsp;
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;"></span> &lt; 45
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
 
                 for start in range(0, len(tickers), 2):
                     cols = st.columns(2)
@@ -1136,7 +1150,7 @@ if st.session_state.get("run_optimisation", False):
                                 for _label, _val in [("Environmental (E)", _E), ("Social (S)", _S), ("Governance (G)", _G)]:
                                     _color = _pillar_color(_val)
                                     st.markdown(
-                                        f'<div style="font-size:0.8rem;color:#8899bb;margin-bottom:0.15rem;">{_label}  <strong style="color:{_color};">{_val:.0f}</strong></div>',
+                                        f'<div style="font-size:0.8rem;color:#8899bb;margin-bottom:0.15rem;display:flex;align-items:center;">{_light(_val)}<span>{_label}  <strong style="color:{_color};">{_val:.0f}</strong></span></div>',
                                         unsafe_allow_html=True,
                                     )
                                     st.progress(_val / 100)
@@ -1147,146 +1161,83 @@ if st.session_state.get("run_optimisation", False):
                 with esg_fig_col2:
                     st.pyplot(fig4, width="stretch")
 
-                render_section_title("ESG Traffic Lights")
-                for start in range(0, len(tickers), 2):
-                    cols = st.columns(2)
-                    for col_idx, ticker in enumerate(tickers[start:start + 2]):
-                        esg_data = asset_esg_lookup.get(ticker)
-                        if esg_data is None:
-                            cols[col_idx].warning(f"No ESG data for {ticker}")
-                            continue
-                        E_v = float(esg_data.get("E") or 0)
-                        S_v = float(esg_data.get("S") or 0)
-                        G_v = float(esg_data.get("G") or 0)
-
-                        def _light(v):
-                            if v >= 70:
-                                color = "#34c759"
-                            elif v >= 45:
-                                color = "#f59e0b"
-                            else:
-                                color = "#ef4444"
-                            return f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{color};margin-right:8px;"></span>'
-
-                        cols[col_idx].markdown(
-                            f"""<div class="metric-card" style="padding:1rem 1.2rem;">
-<div style="font-size:1rem;font-weight:700;margin-bottom:0.6rem;">{ticker}</div>
-<div style="font-size:0.95rem;line-height:2;">
-  {_light(E_v)}Environmental (E): <strong>{E_v:.1f}</strong><br>
-  {_light(S_v)}Social (S): <strong>{S_v:.1f}</strong><br>
-  {_light(G_v)}Governance (G): <strong>{G_v:.1f}</strong>
-</div>
-<div style="font-size:0.75rem;color:#7b90b8;margin-top:0.5rem;">
-  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34c759;"></span> &gt;= 70
-  &nbsp;&nbsp;
-  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span> 45-70
-  &nbsp;&nbsp;
-  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;"></span> &lt; 45
-</div>
-</div>""",
-                            unsafe_allow_html=True,
-                        )
-
-                # FEATURE 5 — ESG Profile Comparison (grouped bar chart)
                 render_section_title("ESG Comparison")
-                esg_compare_left, esg_compare_right = st.columns(2, gap="large")
-                _esg_comp_tickers = []
-                _esg_comp_e = []
-                _esg_comp_s = []
-                _esg_comp_g = []
-                for _t in tickers:
-                    _ed = asset_esg_lookup.get(_t)
-                    if _ed is not None:
-                        _esg_comp_tickers.append(_t)
-                        _esg_comp_e.append(float(_ed.get("E") or 0))
-                        _esg_comp_s.append(float(_ed.get("S") or 0))
-                        _esg_comp_g.append(float(_ed.get("G") or 0))
+                esg_compare_left, esg_compare_right = st.columns(2)
 
-                if _esg_comp_tickers:
-                    _x_pos = np.arange(len(_esg_comp_tickers))
-                    _bar_w = 0.23
-                    _fig_comp, _ax_comp = plt.subplots(figsize=(5.2, 3.1))
+                with esg_compare_left:
+                    st.markdown("##### ESG Profile Comparison")
+                    _fig_comp, _ax_comp = plt.subplots(figsize=(7.6, 4.4))
                     _fig_comp.patch.set_facecolor("#f0f7f2")
                     _ax_comp.set_facecolor("#f0f7f2")
-
-                    _ax_comp.bar(_x_pos - _bar_w, _esg_comp_e, _bar_w, label="Environmental (E)", color="#2d8a4e", edgecolor="white", linewidth=0.5)
-                    _ax_comp.bar(_x_pos, _esg_comp_s, _bar_w, label="Social (S)", color="#74b99a", edgecolor="white", linewidth=0.5)
-                    _ax_comp.bar(_x_pos + _bar_w, _esg_comp_g, _bar_w, label="Governance (G)", color="#c8e6d4", edgecolor="white", linewidth=0.5)
-
-                    _ax_comp.set_xticks(_x_pos)
-                    _ax_comp.set_xticklabels(_esg_comp_tickers, fontsize=8.5, fontweight="bold", color="#1a2e1f")
-                    _ax_comp.set_ylabel("Score", fontsize=9, color="#5a7a63")
-                    _ax_comp.set_title("ESG Profile Comparison", fontsize=10.5, fontweight="bold", color="#1a2e1f")
-                    _ax_comp.set_ylim(0, 105)
-                    _ax_comp.legend(frameon=False, fontsize=7.8, loc="upper right")
-                    _ax_comp.spines["top"].set_visible(False)
-                    _ax_comp.spines["right"].set_visible(False)
-                    _ax_comp.spines["left"].set_color("#c5d9cc")
-                    _ax_comp.spines["bottom"].set_color("#c5d9cc")
-                    _ax_comp.tick_params(axis="y", colors="#5a7a63", labelsize=8.5)
-                    _ax_comp.grid(axis="y", linestyle="--", alpha=0.3, color="#c5d9cc")
-                    plt.tight_layout()
-                    with esg_compare_left:
-                        st.markdown("##### ESG Profile Comparison")
+                    _esg_comp_tickers = [t for t in tickers if asset_esg_lookup.get(t) is not None]
+                    if _esg_comp_tickers:
+                        _esg_comp_e = [float(asset_esg_lookup[t].get("E") or 0) for t in _esg_comp_tickers]
+                        _esg_comp_s = [float(asset_esg_lookup[t].get("S") or 0) for t in _esg_comp_tickers]
+                        _esg_comp_g = [float(asset_esg_lookup[t].get("G") or 0) for t in _esg_comp_tickers]
+                        _x_pos = np.arange(len(_esg_comp_tickers))
+                        _bar_w = 0.23
+                        _ax_comp.bar(_x_pos - _bar_w, _esg_comp_e, _bar_w, label="Environmental (E)", color="#2d8a4e", edgecolor="white", linewidth=0.5)
+                        _ax_comp.bar(_x_pos, _esg_comp_s, _bar_w, label="Social (S)", color="#74b99a", edgecolor="white", linewidth=0.5)
+                        _ax_comp.bar(_x_pos + _bar_w, _esg_comp_g, _bar_w, label="Governance (G)", color="#c8e6d4", edgecolor="white", linewidth=0.5)
+                        _ax_comp.set_xticks(_x_pos)
+                        _ax_comp.set_xticklabels(_esg_comp_tickers, fontsize=8.5, fontweight="bold", color="#1a2e1f")
+                        _ax_comp.set_ylabel("Score", fontsize=9, color="#5a7a63")
+                        _ax_comp.set_ylim(0, 105)
+                        _ax_comp.set_title("ESG Profile Comparison", fontsize=10.5, fontweight="bold", color="#1a2e1f")
+                        _ax_comp.spines["top"].set_visible(False)
+                        _ax_comp.spines["right"].set_visible(False)
+                        _ax_comp.spines["left"].set_color("#c5d9cc")
+                        _ax_comp.spines["bottom"].set_color("#c5d9cc")
+                        _ax_comp.tick_params(axis="y", colors="#5a7a63", labelsize=8.5)
+                        _ax_comp.grid(axis="y", linestyle="--", alpha=0.25, color="#c5d9cc")
+                        _ax_comp.legend(frameon=False, fontsize=8.3, loc="upper right")
+                        plt.tight_layout()
                         st.pyplot(_fig_comp, width="stretch")
+                    else:
+                        st.info("Not enough ESG data available to compare portfolio pillars.")
                     plt.close(_fig_comp)
-                else:
-                    with esg_compare_left:
-                        st.markdown("##### ESG Profile Comparison")
-                        st.info("No ESG data available for comparison chart.")
 
-                # FEATURE 8 — ESG Peer Comparison
-                _benchmarks = {
-                    "S&P 500 Avg (Refinitiv 2024)": 54.2,
-                    "MSCI World ESG Leaders": 71.3,
-                    "Global Market Avg (MSCI 2024)": 49.8,
-                    "FTSE4Good Index Avg": 68.5,
-                }
-                _portfolio_esg_score = float(recommended["ESG_Score"])
-                _all_labels = list(_benchmarks.keys()) + ["Your Portfolio"]
-                _all_scores = list(_benchmarks.values()) + [_portfolio_esg_score]
-                _all_colors = ["#9abfa8"] * len(_benchmarks) + ["#1a6b3c"]
-
-                _fig_peer, _ax_peer = plt.subplots(figsize=(5.2, 3.1))
-                _fig_peer.patch.set_facecolor("#f0f7f2")
-                _ax_peer.set_facecolor("#f0f7f2")
-
-                _y_pos = np.arange(len(_all_labels))
-                _ax_peer.barh(_y_pos, _all_scores, color=_all_colors, height=0.5, edgecolor="white", linewidth=0.5)
-
-                # Add score text at end of each bar
-                for _i, (_lbl, _sc) in enumerate(zip(_all_labels, _all_scores)):
-                    _ax_peer.text(_sc + 1.0, _i, f"{_sc:.1f}", va="center", fontsize=8.8, fontweight="bold", color="#1a2e1f")
-
-                # Vertical dashed line at portfolio score
-                _ax_peer.axvline(x=_portfolio_esg_score, color="#1a6b3c", linestyle="--", linewidth=1.2, alpha=0.7)
-
-                _ax_peer.set_yticks(_y_pos)
-                _ax_peer.set_yticklabels(_all_labels, fontsize=8.3, color="#1a2e1f")
-                _ax_peer.set_xlim(0, 105)
-                _ax_peer.set_xlabel("ESG Score", fontsize=9, color="#5a7a63")
-                _ax_peer.set_title("ESG Peer Comparison", fontsize=10.5, fontweight="bold", color="#1a2e1f")
-                _ax_peer.spines["top"].set_visible(False)
-                _ax_peer.spines["right"].set_visible(False)
-                _ax_peer.spines["left"].set_color("#c5d9cc")
-                _ax_peer.spines["bottom"].set_color("#c5d9cc")
-                _ax_peer.tick_params(axis="x", colors="#5a7a63", labelsize=8.5)
-                _ax_peer.grid(axis="x", linestyle="--", alpha=0.3, color="#c5d9cc")
-                plt.tight_layout()
                 with esg_compare_right:
                     st.markdown("##### ESG Peer Comparison")
+                    _portfolio_esg_score = float(recommended.get("ESG_Score", np.nan))
+                    _benchmarks = {
+                        "FTSE4Good Index Avg": 68.5,
+                        "Global Market Avg (MSCI 2024)": 49.8,
+                        "MSCI World ESG Leaders": 71.3,
+                        "S&P 500 Avg (Refinitiv 2024)": 54.2,
+                    }
+                    _all_labels = ["Your Portfolio"] + list(_benchmarks.keys())
+                    _all_values = [_portfolio_esg_score] + list(_benchmarks.values())
+                    _all_colors = ["#247a43"] + ["#9dc2aa"] * len(_benchmarks)
+                    _fig_peer, _ax_peer = plt.subplots(figsize=(7.6, 4.4))
+                    _fig_peer.patch.set_facecolor("#f0f7f2")
+                    _ax_peer.set_facecolor("#f0f7f2")
+                    _y_pos = np.arange(len(_all_labels))
+                    _ax_peer.barh(_y_pos, _all_values, color=_all_colors, edgecolor="white", height=0.52)
+                    _ax_peer.axvline(_portfolio_esg_score, color="#2f7a59", linestyle="--", linewidth=1.4, alpha=0.8)
+                    for _idx, _val in enumerate(_all_values):
+                        _ax_peer.text(_val + 1.0, _idx, f"{_val:.1f}", va="center", fontsize=8.7, fontweight="bold", color="#1a2e1f")
+                    _ax_peer.set_yticks(_y_pos)
+                    _ax_peer.set_yticklabels(_all_labels, fontsize=8.3, color="#1a2e1f")
+                    _ax_peer.invert_yaxis()
+                    _ax_peer.set_xlim(0, 105)
+                    _ax_peer.set_xlabel("ESG Score", fontsize=9, color="#5a7a63")
+                    _ax_peer.set_title("ESG Peer Comparison", fontsize=10.5, fontweight="bold", color="#1a2e1f")
+                    _ax_peer.spines["top"].set_visible(False)
+                    _ax_peer.spines["right"].set_visible(False)
+                    _ax_peer.spines["left"].set_color("#c5d9cc")
+                    _ax_peer.spines["bottom"].set_color("#c5d9cc")
+                    _ax_peer.tick_params(axis="x", colors="#5a7a63", labelsize=8.5)
+                    _ax_peer.grid(axis="x", linestyle="--", alpha=0.3, color="#c5d9cc")
+                    plt.tight_layout()
                     st.pyplot(_fig_peer, width="stretch")
-                plt.close(_fig_peer)
-                with esg_compare_right:
+                    plt.close(_fig_peer)
                     st.caption(
                         "Benchmark data sourced from MSCI ESG Research and "
                         "Refinitiv ESG scores (2024). Values represent "
                         "weighted average ESG scores for each index."
                     )
-
-                # Verdict: how many benchmarks does the portfolio beat?
-                _beat_count = sum(1 for _bv in _benchmarks.values() if _portfolio_esg_score > _bv)
-                with esg_compare_right:
+                    _beat_count = sum(1 for _bv in _benchmarks.values() if _portfolio_esg_score > _bv)
                     st.markdown(
                         f'<div style="background:#e8f5ee;border:1px solid #b8d4c2;border-radius:12px;'
                         f'padding:0.7rem 1rem;font-size:0.92rem;color:#1a2e1f;margin-top:0.3rem;">'
@@ -1628,6 +1579,7 @@ color:#4a7a58;margin-bottom:0.3rem;">
 elif profile_complete:
     with tab1:
         st.info("Set your inputs in the sidebar, then click 'Run portfolio optimisation'.")
+
 
 
 
