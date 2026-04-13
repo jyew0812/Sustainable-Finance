@@ -1,4 +1,4 @@
-import numpy as np
+﻿import numpy as np
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
@@ -27,7 +27,7 @@ from frontend_ui import (
     render_sage,
 )
 
-st.set_page_config(page_title="Greengate", page_icon="🌿", layout="wide")
+st.set_page_config(page_title="Greengate", page_icon="ðŸŒ¿", layout="wide")
 
 # Ensure the icon-only crop exists (runs once, then no-ops)
 ensure_icon_cropped()
@@ -72,7 +72,7 @@ if not st.session_state.entered:
 
 # ---- User has entered the app ----
 
-# ── Onboarding overlay (early-return pattern: blocks all content until dismissed)
+# â”€â”€ Onboarding overlay (early-return pattern: blocks all content until dismissed)
 
 # Investor profile question keys
 _question_keys = [
@@ -87,11 +87,11 @@ _question_keys = [
 if "profile_saved" not in st.session_state:
     st.session_state["profile_saved"] = False
 
-# ── Auto-backup + restore answers on every rerun ────────────────────────────
-# Runs before any widget is rendered so answers survive ALL reruns — not just
+# â”€â”€ Auto-backup + restore answers on every rerun â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Runs before any widget is rendered so answers survive ALL reruns â€” not just
 # nav button clicks.  Two-way sync:
-#   • live value exists  → write to backup  (keeps backup fresh)
-#   • live value is None → restore from backup (widget was cleared by Streamlit)
+#   â€¢ live value exists  â†’ write to backup  (keeps backup fresh)
+#   â€¢ live value is None â†’ restore from backup (widget was cleared by Streamlit)
 for _k in _question_keys:
     _bk = f"_ans_{_k}"
     _live_val = st.session_state.get(_k)
@@ -304,7 +304,7 @@ if profile_complete:
         st.session_state["manual_esg_mode"] = not st.session_state["manual_esg_mode"]
     st.sidebar.caption(f"Manual ESG Input: {'On' if st.session_state['manual_esg_mode'] else 'Off'}")
 
-# FEATURE 2 — Investor Profile Card in Sidebar
+# FEATURE 2 â€” Investor Profile Card in Sidebar
 if profile_complete:
     render_sidebar_profile_card(gamma, lambda_raw_avg, w_e, w_s, w_g)
 
@@ -346,10 +346,10 @@ def _jump_to_tab(tab_index: int):
         height=0,
     )
 
-# ── Questionnaire wizard state ──────────────────────────────────────────────
+# â”€â”€ Questionnaire wizard state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 if "q_step" not in st.session_state:
     st.session_state["q_step"] = 1
-# Clamp: never allow q_step outside 1–3
+# Clamp: never allow q_step outside 1â€“3
 st.session_state["q_step"] = max(1, min(3, int(st.session_state["q_step"])))
 
 _STEP_KEYS = {
@@ -358,7 +358,7 @@ _STEP_KEYS = {
     3: ["q_env_1", "q_env_2", "q_soc_1", "q_soc_2", "q_gov_1", "q_gov_2", "q_esg_imp", "q_esg_att"],
 }
 _STEP_TITLES  = {1: "About You", 2: "Risk Preference", 3: "ESG Preferences"}
-_STEP_ICONS   = {1: "👤", 2: "📊", 3: "🌱"}
+_STEP_ICONS   = {1: "ðŸ‘¤", 2: "ðŸ“Š", 3: "ðŸŒ±"}
 _STEP_DESCS   = {
     1: "Tell us a bit about yourself and your investment goals.",
     2: "Help us understand how you feel about financial risk.",
@@ -401,11 +401,11 @@ with tab0:
 
     likert_5 = ["1 - Strongly disagree", "2 - Disagree", "3 - Neutral", "4 - Agree", "5 - Strongly agree"]
 
-    # ── COMPLETED VIEW — shown instead of wizard once all 16 answered ─────────
+    # â”€â”€ COMPLETED VIEW â€” shown instead of wizard once all 16 answered â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if profile_complete:
         st.markdown("""
         <div class="wizard-success">
-          <div style="font-size:2.6rem;margin-bottom:0.4rem;">✅</div>
+          <div style="font-size:2.6rem;margin-bottom:0.4rem;">âœ…</div>
           <div style="font-size:1.15rem;font-weight:800;color:#1a6b3c;">Profile saved successfully</div>
           <div style="font-size:0.92rem;color:#5a7a63;margin-top:0.35rem;">
             Your investor profile is complete. Head to the <strong>Dashboard</strong> tab and hit
@@ -417,13 +417,13 @@ with tab0:
         _pc1, _pc2, _pc3, _pc4 = st.columns(4)
         render_metric_card(_pc1, "Risk attitude",          classify_risk(gamma))
         render_metric_card(_pc2, "Sustainability profile", classify_esg(lambda_raw_avg))
-        render_metric_card(_pc3, "Risk aversion (γ)",      f"{gamma:.2f}")
-        render_metric_card(_pc4, "ESG preference (λ)",     f"{lambda_raw_avg:.2f} / 4")
+        render_metric_card(_pc3, "Risk aversion (Î³)",      f"{gamma:.2f}")
+        render_metric_card(_pc4, "ESG preference (Î»)",     f"{lambda_raw_avg:.2f} / 4")
 
         st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
         _, _edit_col, _ = st.columns([1, 1, 1])
         with _edit_col:
-            if st.button("✏️  Edit Profile", key="q_edit", use_container_width=True):
+            if st.button("âœï¸  Edit Profile", key="q_edit", use_container_width=True):
                 for _k in _question_keys:
                     st.session_state.pop(_k, None)
                     st.session_state.pop(f"_ans_{_k}", None)
@@ -438,7 +438,7 @@ with tab0:
                 st.rerun()
 
     else:
-        # ── WIZARD VIEW ────────────────────────────────────────────────────────
+        # â”€â”€ WIZARD VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         _step       = st.session_state["q_step"]
         _total      = 3
         _answered   = sum(
@@ -460,7 +460,7 @@ with tab0:
         for _i in range(1, _total + 1):
             _cls = "step-dot-done" if _i < _step else ("step-dot-active" if _i == _step else "step-dot-pend")
             _lbl_color = "#1a6b3c" if _i == _step else "#5a7a63"
-            _content = "✓" if _i < _step else str(_i)
+            _content = "âœ“" if _i < _step else str(_i)
             _dot_html += (
                 f'<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
                 f'<div class="{_cls}" style="width:34px;height:34px;border-radius:50%;'
@@ -476,7 +476,7 @@ with tab0:
         st.markdown(_dot_html, unsafe_allow_html=True)
 
         # Step header card
-        _icons = {1: "👤", 2: "📊", 3: "🌱"}
+        _icons = {1: "ðŸ‘¤", 2: "ðŸ“Š", 3: "ðŸŒ±"}
         _descs = {
             1: "Tell us a bit about yourself and your investment goals.",
             2: "Help us understand how you feel about financial risk.",
@@ -497,9 +497,9 @@ with tab0:
         _wl, _wc, _wr = st.columns([0.08, 0.84, 0.08])
         with _wc:
 
-            # ── Step 1 ──────────────────────────────────────────────────────
+            # â”€â”€ Step 1 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if _step == 1:
-                render_sage("Your answers here shape your risk aversion score (γ). A higher γ means you prefer safer, steadier returns over chasing higher but volatile gains.")
+                render_sage("Your answers here shape your risk aversion score (Î³). A higher Î³ means you prefer safer, steadier returns over chasing higher but volatile gains.")
                 st.radio("1. How experienced are you with investing?",
                     ["A: No experience", "B: Basic knowledge (e.g. savings, ETFs)",
                      "C: Some experience (stocks, funds)", "D: Advanced (active trading, portfolio management)"],
@@ -509,17 +509,17 @@ with tab0:
                      "C: Grow my wealth steadily", "D: Maximise long-term returns"],
                     key="q_goal", index=None)
                 st.radio("3. When do you expect to need this money?",
-                    ["A: Less than 1 year", "B: 1–3 years", "C: 3–7 years", "D: More than 7 years"],
+                    ["A: Less than 1 year", "B: 1â€“3 years", "C: 3â€“7 years", "D: More than 7 years"],
                     key="q_horizon", index=None)
                 st.radio("4. Do you have emergency savings?",
-                    ["A: None", "B: Less than 3 months of expenses", "C: 3–6 months", "D: More than 6 months"],
+                    ["A: None", "B: Less than 3 months of expenses", "C: 3â€“6 months", "D: More than 6 months"],
                     key="q_safety", index=None)
 
-            # ── Step 2 ──────────────────────────────────────────────────────
+            # â”€â”€ Step 2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             elif _step == 2:
                 render_sage("These questions determine how much of your portfolio goes into risky assets vs the risk-free rate. The more risk-tolerant you are, the higher your allocation to stocks.")
                 st.markdown('<div class="wizard-section-head">Choose the portfolio you prefer</div>', unsafe_allow_html=True)
-                st.radio("Round 1 — which do you prefer?",
+                st.radio("Round 1 â€” which do you prefer?",
                     ["A: Return 3%, Risk 5%", "B: Return 8%, Risk 12%"],
                     key="q_r1", index=None)
                 st.radio("Round 2",
@@ -535,26 +535,26 @@ with tab0:
                      "C: Do nothing", "D: Invest more"],
                     key="q_drop", index=None)
 
-            # ── Step 3 ──────────────────────────────────────────────────────
+            # â”€â”€ Step 3 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             elif _step == 3:
-                render_sage("Your ESG score (λ) controls how much sustainability influences your portfolio. A higher λ shifts weights toward greener assets — even if it costs some Sharpe ratio points.")
-                st.caption("Questions 9 – 16  ·  Rate each statement from 1 (strongly disagree) to 5 (strongly agree).")
-                st.markdown('<div class="wizard-section-head">🌍 Environmental</div>', unsafe_allow_html=True)
+                render_sage("Your ESG score (Î») controls how much sustainability influences your portfolio. A higher Î» shifts weights toward greener assets â€” even if it costs some Sharpe ratio points.")
+                st.caption("Questions 9 â€“ 16  Â·  Rate each statement from 1 (strongly disagree) to 5 (strongly agree).")
+                st.markdown('<div class="wizard-section-head">ðŸŒ Environmental</div>', unsafe_allow_html=True)
                 st.radio("9. I prefer companies with lower carbon emissions.",
                          likert_5, key="q_env_1", index=None)
                 st.radio("10. I am willing to accept slightly lower returns for stronger environmental performance.",
                          likert_5, key="q_env_2", index=None)
-                st.markdown('<div class="wizard-section-head">🤝 Social</div>', unsafe_allow_html=True)
+                st.markdown('<div class="wizard-section-head">ðŸ¤ Social</div>', unsafe_allow_html=True)
                 st.radio("11. I care about labour standards and employee welfare.",
                          likert_5, key="q_soc_1", index=None)
                 st.radio("12. I prefer firms with strong diversity and human rights practices.",
                          likert_5, key="q_soc_2", index=None)
-                st.markdown('<div class="wizard-section-head">🏛 Governance</div>', unsafe_allow_html=True)
+                st.markdown('<div class="wizard-section-head">ðŸ› Governance</div>', unsafe_allow_html=True)
                 st.radio("13. Good board oversight and transparency are very important to me.",
                          likert_5, key="q_gov_1", index=None)
                 st.radio("14. I prefer firms with strong shareholder rights and ethical management.",
                          likert_5, key="q_gov_2", index=None)
-                st.markdown('<div class="wizard-section-head">⚖️ Your ESG Stance</div>', unsafe_allow_html=True)
+                st.markdown('<div class="wizard-section-head">âš–ï¸ Your ESG Stance</div>', unsafe_allow_html=True)
                 st.radio("15. Which best reflects your attitude toward ESG vs financial returns?",
                     ["A: I focus only on financial returns, without considering ESG factors.",
                      "B: ESG factors matter to me, but do not really influence my investment decisions.",
@@ -562,13 +562,13 @@ with tab0:
                      "D: ESG impact is my top priority and I am willing to give up some return."],
                     key="q_esg_imp", index=None)
                 st.radio("16. To what extent does a higher ESG score make an investment more attractive?",
-                    ["A: Never — I would only consider ESG if financial performance is very strong.",
-                     "B: Slightly — I would include it if it does not negatively impact returns.",
-                     "C: Moderately — I value ESG and aim to invest in high-ESG-score companies.",
-                     "D: Significantly — I always prioritise ESG, even if returns are lower."],
+                    ["A: Never â€” I would only consider ESG if financial performance is very strong.",
+                     "B: Slightly â€” I would include it if it does not negatively impact returns.",
+                     "C: Moderately â€” I value ESG and aim to invest in high-ESG-score companies.",
+                     "D: Significantly â€” I always prioritise ESG, even if returns are lower."],
                     key="q_esg_att", index=None)
 
-            # ── Per-step count + warning ────────────────────────────────────
+            # â”€â”€ Per-step count + warning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             _step_keys_now  = _STEP_KEYS[_step]
             _step_complete  = all(st.session_state.get(k) is not None for k in _step_keys_now)
             _step_n_done    = sum(1 for k in _step_keys_now if st.session_state.get(k) is not None)
@@ -580,11 +580,11 @@ with tab0:
             )
             if not _step_complete:
                 st.markdown(
-                    '<div class="wizard-warn">⚠️ Answer all questions on this step before continuing.</div>',
+                    '<div class="wizard-warn">âš ï¸ Answer all questions on this step before continuing.</div>',
                     unsafe_allow_html=True,
                 )
 
-            # ── helper: back up current step answers so they survive rerun ──
+            # â”€â”€ helper: back up current step answers so they survive rerun â”€â”€
             def _backup_step_answers():
                 """Copy current step widget values to persistent backup keys."""
                 for _bk in _STEP_KEYS[_step]:
@@ -592,17 +592,17 @@ with tab0:
                     if _val is not None:
                         st.session_state[f"_ans_{_bk}"] = _val
 
-            # ── Nav buttons ─────────────────────────────────────────────────
+            # â”€â”€ Nav buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             _nav_l, _nav_r = st.columns([1, 1])
             with _nav_l:
                 if _step > 1:
-                    if st.button("← Back", key="q_back", use_container_width=True):
+                    if st.button("â† Back", key="q_back", use_container_width=True):
                         _backup_step_answers()
                         st.session_state["q_step"] = _step - 1
                         st.rerun()
             with _nav_r:
                 if _step < _total:
-                    if st.button("Next →", key="q_next", use_container_width=True):
+                    if st.button("Next â†’", key="q_next", use_container_width=True):
                         if _step_complete:
                             _backup_step_answers()
                             st.session_state["q_step"] = _step + 1
@@ -611,7 +611,7 @@ with tab0:
                             st.warning("Please answer every question on this step first.")
                 else:
                     # Step 3: Save Profile
-                    if st.button("Save Profile ✓", key="q_save", use_container_width=True):
+                    if st.button("Save Profile âœ“", key="q_save", use_container_width=True):
                         if _step_complete:
                             _backup_step_answers()
 
@@ -882,7 +882,7 @@ if st.session_state.get("run_optimisation", False):
                 render_metric_card(p4, "Sharpe ratio", f"{recommended['Sharpe_Ratio']:.3f}")
                 render_metric_card(p5, "ESG utility", f"{recommended['Utility']:.4f}")
 
-                # FEATURE 1 — Animated ESG Score Gauge
+                # FEATURE 1 â€” Animated ESG Score Gauge
                 render_esg_gauge(recommended["ESG_Score"])
 
                 render_green_cost_card(
@@ -912,7 +912,7 @@ if st.session_state.get("run_optimisation", False):
                 corr_label = "Correlation" if len(tickers) == 2 else "Avg correlation"
 
                 render_section_title("Charts")
-                render_sage("The efficient frontier shows every possible combination of your assets. The green diamond is your ESG-optimal portfolio — notice how it differs from the pure Sharpe maximum.")
+                render_sage("The efficient frontier shows every possible combination of your assets. The green diamond is your ESG-optimal portfolio â€” notice how it differs from the pure Sharpe maximum.")
                 ch_col1, ch_col2 = st.columns(2)
                 with ch_col1:
                     st.pyplot(fig0, width="stretch")
@@ -1105,14 +1105,28 @@ if st.session_state.get("run_optimisation", False):
 # --------------------------------------------------
             with tab3:
                 render_section_title("ESG Pillar Breakdown")
-                render_sage("ESG scores break down into Environmental, Social, and Governance pillars. A high Governance score often predicts lower long-run risk — boards that manage ESG well tend to manage business risk well too.")
-
+                render_sage("ESG scores break down into Environmental, Social, and Governance pillars. A high Governance score often predicts lower long-run risk â€” boards that manage ESG well tend to manage business risk well too.")
                 def _pillar_color(v):
                     if v >= 70:
                         return "#34c759"
                     elif v >= 45:
                         return "#f59e0b"
                     return "#ef4444"
+
+                def _light(v, size=10, margin=8):
+                    color = _pillar_color(v)
+                    return f'<span style="display:inline-block;width:{size}px;height:{size}px;border-radius:50%;background:{color};margin-right:{margin}px;vertical-align:middle;"></span>'
+
+                st.markdown(
+                    """<div style="font-size:0.78rem;color:#7b90b8;margin:-0.15rem 0 1rem 0;">
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34c759;"></span> &gt;= 70
+                    &nbsp;&nbsp;
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span> 45-70
+                    &nbsp;&nbsp;
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;"></span> &lt; 45
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
 
                 for start in range(0, len(tickers), 2):
                     cols = st.columns(2)
@@ -1136,7 +1150,7 @@ if st.session_state.get("run_optimisation", False):
                                 for _label, _val in [("Environmental (E)", _E), ("Social (S)", _S), ("Governance (G)", _G)]:
                                     _color = _pillar_color(_val)
                                     st.markdown(
-                                        f'<div style="font-size:0.8rem;color:#8899bb;margin-bottom:0.15rem;">{_label}  <strong style="color:{_color};">{_val:.0f}</strong></div>',
+                                        f'<div style="font-size:0.8rem;color:#8899bb;margin-bottom:0.15rem;display:flex;align-items:center;">{_light(_val)}<span>{_label}  <strong style="color:{_color};">{_val:.0f}</strong></span></div>',
                                         unsafe_allow_html=True,
                                     )
                                     st.progress(_val / 100)
@@ -1146,122 +1160,6 @@ if st.session_state.get("run_optimisation", False):
                     st.pyplot(fig3, width="stretch")
                 with esg_fig_col2:
                     st.pyplot(fig4, width="stretch")
-
-                render_section_title("ESG Traffic Lights")
-                for start in range(0, len(tickers), 2):
-                    cols = st.columns(2)
-                    for col_idx, ticker in enumerate(tickers[start:start + 2]):
-                        esg_data = asset_esg_lookup.get(ticker)
-                        if esg_data is None:
-                            cols[col_idx].warning(f"No ESG data for {ticker}")
-                            continue
-                        E_v = float(esg_data.get("E") or 0)
-                        S_v = float(esg_data.get("S") or 0)
-                        G_v = float(esg_data.get("G") or 0)
-
-                        def _light(v):
-                            if v >= 70:
-                                color = "#34c759"
-                            elif v >= 45:
-                                color = "#f59e0b"
-                            else:
-                                color = "#ef4444"
-                            return f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{color};margin-right:8px;"></span>'
-
-                        cols[col_idx].markdown(
-                            f"""<div class="metric-card" style="padding:1rem 1.2rem;">
-<div style="font-size:1rem;font-weight:700;margin-bottom:0.6rem;">{ticker}</div>
-<div style="font-size:0.95rem;line-height:2;">
-  {_light(E_v)}Environmental (E): <strong>{E_v:.1f}</strong><br>
-  {_light(S_v)}Social (S): <strong>{S_v:.1f}</strong><br>
-  {_light(G_v)}Governance (G): <strong>{G_v:.1f}</strong>
-</div>
-<div style="font-size:0.75rem;color:#7b90b8;margin-top:0.5rem;">
-  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34c759;"></span> &gt;= 70
-  &nbsp;&nbsp;
-  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span> 45-70
-  &nbsp;&nbsp;
-  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;"></span> &lt; 45
-</div>
-</div>""",
-                            unsafe_allow_html=True,
-                        )
-
-                # FEATURE 5 — ESG Profile Comparison (grouped bar chart)
-                render_section_title("ESG Comparison")
-                esg_compare_left, esg_compare_right = st.columns(2, gap="large")
-                _esg_comp_tickers = []
-                _esg_comp_e = []
-                _esg_comp_s = []
-                _esg_comp_g = []
-                for _t in tickers:
-                    _ed = asset_esg_lookup.get(_t)
-                    if _ed is not None:
-                        _esg_comp_tickers.append(_t)
-                        _esg_comp_e.append(float(_ed.get("E") or 0))
-                        _esg_comp_s.append(float(_ed.get("S") or 0))
-                        _esg_comp_g.append(float(_ed.get("G") or 0))
-
-                if _esg_comp_tickers:
-                    _x_pos = np.arange(len(_esg_comp_tickers))
-                    _bar_w = 0.23
-                    _fig_comp, _ax_comp = plt.subplots(figsize=(5.2, 3.1))
-                    _fig_comp.patch.set_facecolor("#f0f7f2")
-                    _ax_comp.set_facecolor("#f0f7f2")
-
-                    _ax_comp.bar(_x_pos - _bar_w, _esg_comp_e, _bar_w, label="Environmental (E)", color="#2d8a4e", edgecolor="white", linewidth=0.5)
-                    _ax_comp.bar(_x_pos, _esg_comp_s, _bar_w, label="Social (S)", color="#74b99a", edgecolor="white", linewidth=0.5)
-                    _ax_comp.bar(_x_pos + _bar_w, _esg_comp_g, _bar_w, label="Governance (G)", color="#c8e6d4", edgecolor="white", linewidth=0.5)
-
-                    _ax_comp.set_xticks(_x_pos)
-                    _ax_comp.set_xticklabels(_esg_comp_tickers, fontsize=8.5, fontweight="bold", color="#1a2e1f")
-                    _ax_comp.set_ylabel("Score", fontsize=9, color="#5a7a63")
-                    _ax_comp.set_title("ESG Profile Comparison", fontsize=10.5, fontweight="bold", color="#1a2e1f")
-                    _ax_comp.set_ylim(0, 105)
-                    _ax_comp.legend(frameon=False, fontsize=7.8, loc="upper right")
-                    _ax_comp.spines["top"].set_visible(False)
-                    _ax_comp.spines["right"].set_visible(False)
-                    _ax_comp.spines["left"].set_color("#c5d9cc")
-                    _ax_comp.spines["bottom"].set_color("#c5d9cc")
-                    _ax_comp.tick_params(axis="y", colors="#5a7a63", labelsize=8.5)
-                    _ax_comp.grid(axis="y", linestyle="--", alpha=0.3, color="#c5d9cc")
-                    plt.tight_layout()
-                    with esg_compare_left:
-                        st.markdown("##### ESG Profile Comparison")
-                        st.pyplot(_fig_comp, width="stretch")
-                    plt.close(_fig_comp)
-                else:
-                    with esg_compare_left:
-                        st.markdown("##### ESG Profile Comparison")
-                        st.info("No ESG data available for comparison chart.")
-
-                # FEATURE 8 — ESG Peer Comparison
-                _benchmarks = {
-                    "S&P 500 Avg (Refinitiv 2024)": 54.2,
-                    "MSCI World ESG Leaders": 71.3,
-                    "Global Market Avg (MSCI 2024)": 49.8,
-                    "FTSE4Good Index Avg": 68.5,
-                }
-                _portfolio_esg_score = float(recommended["ESG_Score"])
-                _all_labels = list(_benchmarks.keys()) + ["Your Portfolio"]
-                _all_scores = list(_benchmarks.values()) + [_portfolio_esg_score]
-                _all_colors = ["#9abfa8"] * len(_benchmarks) + ["#1a6b3c"]
-
-                _fig_peer, _ax_peer = plt.subplots(figsize=(5.2, 3.1))
-                _fig_peer.patch.set_facecolor("#f0f7f2")
-                _ax_peer.set_facecolor("#f0f7f2")
-
-                _y_pos = np.arange(len(_all_labels))
-                _ax_peer.barh(_y_pos, _all_scores, color=_all_colors, height=0.5, edgecolor="white", linewidth=0.5)
-
-                # Add score text at end of each bar
-                for _i, (_lbl, _sc) in enumerate(zip(_all_labels, _all_scores)):
-                    _ax_peer.text(_sc + 1.0, _i, f"{_sc:.1f}", va="center", fontsize=8.8, fontweight="bold", color="#1a2e1f")
-
-                # Vertical dashed line at portfolio score
-                _ax_peer.axvline(x=_portfolio_esg_score, color="#1a6b3c", linestyle="--", linewidth=1.2, alpha=0.7)
-
-                _ax_peer.set_yticks(_y_pos)
                 _ax_peer.set_yticklabels(_all_labels, fontsize=8.3, color="#1a2e1f")
                 _ax_peer.set_xlim(0, 105)
                 _ax_peer.set_xlabel("ESG Score", fontsize=9, color="#5a7a63")
@@ -1323,7 +1221,7 @@ if st.session_state.get("run_optimisation", False):
                     st.info(alternatives_warning)
 
                 render_section_title("Portfolio-Profile Compatibility Score")
-                render_sage("Compatibility shows which of your stocks best matches your ESG preference profile — not just overall ESG score, but how well each pillar aligns with what you said matters most to you.")
+                render_sage("Compatibility shows which of your stocks best matches your ESG preference profile â€” not just overall ESG score, but how well each pillar aligns with what you said matters most to you.")
 
                 overall = compat["overall_compatibility"]
                 risk_fit = compat["risk_compatibility"]
@@ -1488,9 +1386,9 @@ color:#4a7a58;margin-bottom:0.3rem;">
                     if overall >= 60:
                         _show_alt_reason = f"Your portfolio scores <strong>{int(overall)}%</strong> compatibility. The stocks below are better aligned to your ESG profile and could push your score higher."
                     else:
-                        _show_alt_reason = f"Your portfolio scores <strong>{int(overall)}%</strong> compatibility — there's meaningful room to improve. Swapping in one of these alternatives could significantly raise your score."
+                        _show_alt_reason = f"Your portfolio scores <strong>{int(overall)}%</strong> compatibility â€” there's meaningful room to improve. Swapping in one of these alternatives could significantly raise your score."
                 else:
-                    _show_alt_reason = f"Your portfolio already scores <strong>{int(overall)}%</strong>. These alternatives are shown for reference — they match your ESG profile even more closely."
+                    _show_alt_reason = f"Your portfolio already scores <strong>{int(overall)}%</strong>. These alternatives are shown for reference â€” they match your ESG profile even more closely."
 
                 st.markdown(
                     f"""<div style="background:linear-gradient(135deg,#f0f7f2,#e8f5ee);
@@ -1561,7 +1459,7 @@ color:#4a7a58;margin-bottom:0.3rem;">
   <div style="text-align:right;">
     <span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:999px;background:{badge_color_alt}22;color:{badge_color_alt};font-size:0.8rem;font-weight:600;">{badge_label_alt}</span>
     <div style="font-size:0.92rem;color:#2f7a59;font-weight:700;margin-top:0.2rem;">Alignment: {cs:.1f}/100</div>
-    <div style="font-size:0.78rem;color:#4a7a58;margin-top:0.15rem;">{'↑ Higher than your portfolio avg' if weakest_asset and cs > weakest_asset['composite'] else 'Solid ESG match'}</div>
+    <div style="font-size:0.78rem;color:#4a7a58;margin-top:0.15rem;">{'â†‘ Higher than your portfolio avg' if weakest_asset and cs > weakest_asset['composite'] else 'Solid ESG match'}</div>
   </div>
 </div>
 <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:0.55rem;font-size:0.84rem;color:#355a49;">
